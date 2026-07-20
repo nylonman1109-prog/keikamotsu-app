@@ -1,0 +1,1264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>軽貨物まるごとアプリ 強化版</title>
+<style>
+:root{
+  --bg:#F0F4F8; --card:#FFFFFF; --text:#1A1A2E; --sub:#546E7A;
+  --border:#CFD8DC; --radius:14px;
+  --shadow:0 2px 10px rgba(0,0,0,.09);
+  --income:#00838F; --income-light:#E0F7FA;
+  --expense:#AD1457; --expense-light:#FCE4EC;
+  --money:#1565C0; --money-light:#E3F2FD;
+  --good:#2E7D32; --good-light:#E8F5E9;
+  --bad:#C62828; --bad-light:#FFEBEE;
+  --warn:#E65100; --warn-light:#FFF3E0;
+  --gold:#F9A825;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{overscroll-behavior-y:none;}
+body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:74px;max-width:480px;margin:0 auto;position:relative;}
+
+.screen{display:none;min-height:100vh;flex-direction:column;}
+.screen.active{display:flex;}
+
+/* ── ヘッダー ── */
+.header{color:white;padding:14px 16px 40px;position:relative;}
+.header-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.header-user{display:flex;align-items:center;gap:8px;font-size:12px;background:rgba(255,255,255,.18);padding:5px 10px 5px 6px;border-radius:20px;min-width:0;}
+.header-avatar{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
+.header-actions{display:flex;gap:6px;flex-shrink:0;}
+.header-manage{font-size:11px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.4);color:white;padding:5px 10px;border-radius:20px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:3px;}
+.header-title{margin-top:14px;}
+.header-greeting{font-size:12px;opacity:.85;}
+.header-name{font-size:21px;font-weight:800;margin-top:1px;}
+
+/* ── ホーム背景（グラデ＋波） ── */
+#home{background:linear-gradient(155deg,#1565C0 0%,#1E88E5 38%,var(--bg) 38%);}
+.home-body{padding:0 14px 24px;flex:1;margin-top:-16px;}
+
+/* 損益カード（主役） */
+.profit-card{background:var(--card);border-radius:18px;padding:18px 18px 16px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,.12);}
+.profit-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.profit-month{font-size:12px;color:var(--sub);font-weight:700;}
+.profit-link{font-size:10px;color:var(--money);font-weight:700;}
+.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;}
+.mini-box{border-radius:10px;padding:8px 10px;}
+.mini-box.in{background:var(--income-light);} .mini-box.ex{background:var(--expense-light);}
+.mini-label{font-size:9px;font-weight:700;letter-spacing:.5px;}
+.mini-box.in .mini-label{color:var(--income);} .mini-box.ex .mini-label{color:var(--expense);}
+.mini-val{font-size:15px;font-weight:800;margin-top:1px;}
+.mini-box.in .mini-val{color:var(--income);} .mini-box.ex .mini-val{color:var(--expense);}
+
+.profit-main{border-radius:14px;padding:18px 16px;text-align:center;position:relative;overflow:hidden;}
+.profit-main.good{background:linear-gradient(135deg,#2E7D32,#43A047);}
+.profit-main.bad{background:linear-gradient(135deg,#C62828,#E53935);}
+.profit-main-label{font-size:11px;color:rgba(255,255,255,.9);font-weight:700;letter-spacing:1px;}
+.profit-main-val{font-size:34px;font-weight:800;color:white;margin-top:4px;letter-spacing:.5px;}
+
+/* 達成率ゲージカード */
+.goal-card{background:var(--card);border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow);}
+.goal-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.goal-title{font-size:12px;font-weight:700;color:var(--sub);}
+.goal-num{font-size:13px;font-weight:700;}
+.goal-num b{font-size:20px;}
+.goal-bar-track{width:100%;height:16px;background:#ECEFF1;border-radius:20px;overflow:hidden;position:relative;}
+.goal-bar-fill{height:100%;border-radius:20px;transition:width .5s ease;display:flex;align-items:center;justify-content:flex-end;}
+.goal-bar-fill.green{background:linear-gradient(90deg,#66BB6A,#2E7D32);}
+.goal-bar-fill.yellow{background:linear-gradient(90deg,#FFCA28,#F9A825);}
+.goal-bar-fill.red{background:linear-gradient(90deg,#EF5350,#C62828);}
+.goal-pct{text-align:right;font-size:11px;font-weight:800;color:var(--sub);margin-top:5px;}
+
+/* 月次グラフカード */
+.chart-card{background:var(--card);border-radius:16px;padding:16px 16px 10px;margin-bottom:14px;box-shadow:var(--shadow);}
+.chart-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+.chart-title{font-size:12px;font-weight:700;color:var(--sub);}
+.chart-badge{font-size:10px;font-weight:800;padding:3px 9px;border-radius:20px;}
+.chart-badge.up{background:var(--good-light);color:var(--good);}
+.chart-badge.down{background:var(--bad-light);color:var(--bad);}
+.chart-legend{display:flex;gap:14px;font-size:10px;color:var(--sub);margin:8px 0 2px;}
+.chart-legend span{display:inline-flex;align-items:center;gap:4px;}
+.dot{width:8px;height:8px;border-radius:2px;display:inline-block;}
+.dot.cnt{background:var(--money);} .dot.sales{background:var(--gold);}
+.chart-tap-hint{font-size:9px;color:#B0BEC5;text-align:center;margin-top:2px;}
+.chart-detail{background:var(--money-light);border-radius:10px;padding:9px 12px;margin-top:8px;font-size:12px;color:var(--money);font-weight:700;display:none;}
+.chart-detail.show{display:block;}
+
+.section-label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin:10px 2px 6px;}
+.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.btn-g{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;border:none;border-radius:var(--radius);cursor:pointer;box-shadow:var(--shadow);transition:transform .12s;text-align:center;}
+.btn-g:active{transform:scale(.96);}
+.bg-in{background:linear-gradient(135deg,#00838F,#26A69A);}
+.btn-g-icon{font-size:24px;margin-bottom:4px;}
+.btn-g-title{font-size:13px;font-weight:800;color:white;}
+.btn-g-desc{font-size:10px;color:rgba(255,255,255,.85);margin-top:1px;}
+
+.note{background:#FFFDE7;border:1px solid #FFD54F;border-radius:10px;padding:9px 12px;font-size:11px;color:#795548;line-height:1.6;margin:4px 2px 0;}
+
+/* ── フォーム共通 ── */
+.subheader{color:white;padding:14px 16px 14px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.subheader.expense{background:var(--expense);} .subheader.money{background:var(--money);}
+.subheader.drive{background:#37474F;}
+
+/* 運行記録タブ内のサブ切替（点呼簿／業務簿／車両点検） */
+.subtab-row{display:flex;gap:6px;margin-bottom:14px;}
+.subtab-btn{flex:1;padding:10px 4px;border:2px solid var(--border);border-radius:12px;background:#FAFAFA;font-size:12px;font-weight:800;color:var(--sub);cursor:pointer;font-family:inherit;}
+.subtab-btn.active{border-color:#37474F;background:#ECEFF1;color:#263238;}
+.subpanel{display:none;}
+.subpanel.active{display:block;}
+
+/* 車両点検（日常点検15項目）のチェック行 */
+.check-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #F5F5F5;gap:8px;}
+.check-item:last-child{border-bottom:none;}
+.check-name{font-size:12px;flex:1;line-height:1.3;}
+.check-opts{display:flex;gap:4px;flex-shrink:0;}
+.check-opt{width:36px;height:34px;border:2px solid var(--border);border-radius:8px;background:#FAFAFA;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.check-opt.ok.active{border-color:var(--good);background:var(--good-light);}
+.check-opt.warn.active{border-color:var(--warn);background:var(--warn-light);}
+.check-opt.ng.active{border-color:var(--bad);background:var(--bad-light);}
+.btn-back{background:rgba(255,255,255,.2);border:none;color:white;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.subheader h1{font-size:17px;font-weight:700;flex:1;}
+.subheader-sub{font-size:11px;opacity:.85;}
+
+.form-body{padding:14px;flex:1;}
+.section{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow);}
+.section-title{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+.q{margin-bottom:14px;} .q:last-child{margin-bottom:0;}
+.q-label{font-size:13px;font-weight:600;margin-bottom:7px;}
+.field{width:100%;padding:11px 12px;border:2px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;background:#FAFAFA;color:var(--text);outline:none;}
+.field:focus{border-color:var(--money);background:white;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* 点呼・業務簿フォームのチップ選択（有/無・点呼方法などの選択欄） */
+.chip-row{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:8px 14px;border:2px solid var(--border);border-radius:20px;font-size:12px;font-weight:700;color:var(--sub);background:#FAFAFA;cursor:pointer;}
+.chip.active{border-color:var(--money);background:var(--money-light);color:var(--money);}
+.calc-box{background:var(--money-light);border:2px solid var(--money);border-radius:10px;padding:12px 14px;font-size:17px;font-weight:800;color:var(--money);text-align:center;}
+
+/* カメラボタン */
+.camera-btn{width:100%;border:none;border-radius:16px;padding:22px 14px;background:linear-gradient(135deg,#AD1457,#D81B60);color:white;font-size:16px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 6px 16px rgba(173,20,87,.35);margin-bottom:8px;}
+.camera-btn:active{transform:scale(.98);}
+.camera-icon{font-size:30px;}
+.camera-sub{font-size:11px;font-weight:600;opacity:.9;}
+
+/* レシート行（税率つき） */
+.receipt-line{padding:9px 0;border-bottom:1px solid #F0F0F0;}
+.receipt-line:last-child{border-bottom:none;}
+.rl-row1{display:grid;grid-template-columns:38px 1fr 76px 26px;gap:6px;align-items:center;}
+.rl-toggle{width:34px;height:34px;border:2px solid var(--border);border-radius:9px;background:#FAFAFA;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;color:transparent;padding:0;}
+.rl-toggle::after{content:'✓';}
+.receipt-line.picked .rl-toggle{border-color:var(--expense);background:var(--expense);color:#fff;}
+.rl-name{width:100%;padding:7px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;background:#FAFAFA;outline:none;}
+.rl-price{width:100%;padding:7px 6px;border:1.5px solid var(--border);border-radius:7px;font-size:13px;font-family:inherit;background:#FAFAFA;outline:none;text-align:right;}
+.rl-del{background:none;border:none;color:#CFD8DC;font-size:16px;cursor:pointer;}
+.receipt-line.picked .rl-name,.receipt-line.picked .rl-price{border-color:var(--expense);background:var(--expense-light);}
+.rl-row2{display:none;margin-top:7px;padding-left:44px;gap:8px;align-items:center;}
+.receipt-line.picked .rl-row2{display:flex;}
+.rl-row2 select{flex:1;padding:6px 8px;border:1.5px solid var(--expense);border-radius:7px;font-size:12px;background:var(--expense-light);color:var(--expense);font-weight:600;font-family:inherit;}
+.rl-row2 select:invalid{border-color:var(--warn);background:var(--warn-light);color:var(--warn);}
+.rate-toggle{display:flex;border:1.5px solid var(--border);border-radius:20px;overflow:hidden;flex-shrink:0;}
+.rate-btn{border:none;background:#FAFAFA;font-size:11px;font-weight:800;padding:6px 10px;cursor:pointer;color:var(--sub);}
+.rate-btn.active{background:var(--money);color:white;}
+.receipt-head{display:grid;grid-template-columns:38px 1fr 76px 26px;gap:6px;font-size:10px;color:var(--sub);font-weight:700;padding-bottom:6px;border-bottom:2px solid var(--border);margin-bottom:2px;text-align:center;}
+.add-line-btn{width:100%;padding:9px;background:var(--money-light);border:1.5px dashed var(--money);border-radius:9px;color:var(--money);font-size:13px;font-weight:700;cursor:pointer;margin-top:8px;}
+
+.rate-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);}
+.rate-sum-box{background:#FAFAFA;border-radius:10px;padding:9px 10px;text-align:center;}
+.rate-sum-label{font-size:9px;color:var(--sub);font-weight:700;}
+.rate-sum-val{font-size:15px;font-weight:800;margin-top:2px;}
+.exp-total{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:10px;border-top:2px solid var(--border);}
+.exp-total-label{font-size:12px;color:var(--sub);font-weight:700;}
+.exp-total-val{font-size:20px;font-weight:800;color:var(--expense);}
+
+.scan-toast{background:var(--good-light);border:1px solid #A5D6A7;color:var(--good);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+
+/* リスト */
+.list-item{background:var(--card);border-radius:12px;padding:11px 13px;margin-bottom:8px;box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:center;}
+.li-main{font-size:14px;font-weight:700;} .li-sub{font-size:11px;color:var(--sub);margin-top:2px;}
+.li-amt{font-size:15px;font-weight:800;}
+.li-amt.in{color:var(--income);} .li-amt.ex{color:var(--expense);}
+.empty{text-align:center;color:#B0BEC5;font-size:13px;padding:30px 0;}
+
+/* 個数入力 */
+.count-input-card{background:var(--card);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow);text-align:center;}
+.count-big{font-size:46px;font-weight:800;color:var(--money);margin:8px 0;}
+.count-stepper{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:10px;}
+.step-btn{width:44px;height:44px;border-radius:50%;border:none;background:var(--money-light);color:var(--money);font-size:22px;font-weight:800;cursor:pointer;}
+.step-btn:active{transform:scale(.92);}
+
+/* グラフSVG */
+.bar-chart-wrap{padding:6px 0 2px;}
+
+/* まとめ役ビュー */
+.team-list{margin-top:4px;}
+.team-item{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;}
+.team-avatar{width:38px;height:38px;border-radius:50%;background:var(--money-light);color:var(--money);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex-shrink:0;}
+.team-info{flex:1;}
+.team-name{font-size:14px;font-weight:700;}
+.team-sub{font-size:11px;color:var(--sub);margin-top:2px;}
+.team-profit{font-size:14px;font-weight:800;}
+.team-profit.good{color:var(--good);} .team-profit.bad{color:var(--bad);}
+.badge-leader{font-size:9px;background:var(--gold);color:#fff;padding:2px 7px;border-radius:10px;font-weight:800;margin-left:6px;}
+
+/* ログイン */
+#login{background:linear-gradient(160deg,#1565C0,#1E88E5 55%,#0D47A1);justify-content:center;align-items:center;padding:24px;}
+.login-card{background:white;border-radius:20px;padding:32px 26px;width:100%;max-width:340px;box-shadow:0 12px 30px rgba(0,0,0,.25);}
+.login-logo{text-align:center;font-size:36px;margin-bottom:6px;}
+.login-title{text-align:center;font-size:18px;font-weight:800;margin-bottom:2px;}
+.login-sub{text-align:center;font-size:11px;color:var(--sub);margin-bottom:22px;}
+.login-tabs{display:flex;gap:6px;margin-bottom:18px;}
+.login-tab{flex:1;padding:9px 4px;border:2px solid var(--border);border-radius:10px;background:#FAFAFA;font-size:12px;font-weight:800;color:var(--sub);cursor:pointer;font-family:inherit;}
+.login-tab.active{border-color:var(--money);background:var(--money-light);color:var(--money);}
+.login-field-label{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:5px;}
+.login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#1565C0,#1E88E5);color:white;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;box-shadow:0 4px 12px rgba(21,101,192,.3);}
+.login-btn:active{transform:scale(.98);}
+.login-btn:disabled{opacity:.6;}
+.login-foot{text-align:center;font-size:10px;color:#B0BEC5;margin-top:16px;line-height:1.6;}
+
+/* ボトムナビ */
+.bottomnav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);display:flex;z-index:20;box-shadow:0 -2px 10px rgba(0,0,0,.06);max-width:480px;margin:0 auto;}
+.bn{flex:1;border:none;background:none;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--sub);}
+.bn.active{color:var(--money);}
+.bn-icon{font-size:20px;} .bn-txt{font-size:10px;font-weight:700;}
+
+.toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%) translateY(20px);background:#263238;color:#fff;padding:12px 22px;border-radius:30px;font-size:14px;font-weight:700;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:50;max-width:90%;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- ═══ ログイン画面 ═══ -->
+<div id="login" class="screen active">
+  <div class="login-card">
+    <div class="login-logo">🚛</div>
+    <div class="login-title">軽貨物まるごとアプリ</div>
+    <div class="login-sub">お金まわり ＋ 配達管理</div>
+    <div class="login-tabs">
+      <button type="button" class="login-tab active" id="tab-login" onclick="switchAuthTab('login')">ログイン</button>
+      <button type="button" class="login-tab" id="tab-register" onclick="switchAuthTab('register')">新規登録</button>
+    </div>
+    <div class="q" id="register-name-field" style="display:none">
+      <div class="login-field-label">お名前（表示名）</div>
+      <input type="text" class="field" id="auth-name" placeholder="例）北上 奈世">
+    </div>
+    <div class="q">
+      <div class="login-field-label">メールアドレス</div>
+      <input type="email" class="field" id="auth-email" placeholder="you@example.com" autocomplete="username">
+    </div>
+    <div class="q">
+      <div class="login-field-label">パスワード</div>
+      <input type="password" class="field" id="auth-password" placeholder="6文字以上" autocomplete="current-password">
+    </div>
+    <div id="auth-error" style="display:none;color:var(--bad);font-size:12px;font-weight:700;margin:2px 2px 0;line-height:1.5;"></div>
+    <button class="login-btn" id="auth-submit-btn" onclick="submitAuth()">ログイン</button>
+    <div class="login-foot" id="login-foot">初めての方は上の「新規登録」から登録してください</div>
+  </div>
+</div>
+
+<!-- ═══ ホーム ═══ -->
+<div id="home" class="screen">
+  <div class="header">
+    <div class="header-top">
+      <div class="header-user"><span class="header-avatar" id="header-avatar">−</span><span id="header-username">ログイン中…</span></div>
+      <div class="header-actions">
+        <button class="header-manage" id="btn-team" onclick="go('team')" style="display:none">👥 全員を見る</button>
+        <button class="header-manage" onclick="logout()">🚪</button>
+      </div>
+    </div>
+    <div class="header-title">
+      <div class="header-greeting">お疲れ様です</div>
+      <div class="header-name">🚛 今日もお疲れ様です</div>
+    </div>
+  </div>
+  <div class="home-body">
+
+    <!-- 損益カード（主役） -->
+    <div class="profit-card">
+      <div class="profit-top"><span class="profit-month" id="home-month">今月の収支</span><span class="profit-link" onclick="go('report')">レポートを見る ▸</span></div>
+      <div class="mini-grid">
+        <div class="mini-box in"><div class="mini-label">売上</div><div class="mini-val" id="home-sales">¥0</div></div>
+        <div class="mini-box ex"><div class="mini-label">経費</div><div class="mini-val" id="home-expense">¥0</div></div>
+      </div>
+      <div class="profit-main good" id="home-profit-main">
+        <div class="profit-main-label">今月の損益</div>
+        <div class="profit-main-val" id="home-profit-val">＋¥0</div>
+      </div>
+    </div>
+
+    <!-- 達成率ゲージ（配達個数画面で入力した数がここに反映されます） -->
+    <div class="goal-card">
+      <div class="goal-top"><span class="goal-title">🎯 今日の配達</span><span class="goal-num"><b id="goal-count">0</b> / <span id="goal-target">100</span> 個</span></div>
+      <div class="goal-bar-track"><div class="goal-bar-fill yellow" id="goal-bar" style="width:0%"></div></div>
+      <div class="goal-pct" id="goal-pct">達成率 0%</div>
+    </div>
+
+    <!-- 月次グラフ -->
+    <div class="chart-card">
+      <div class="chart-top"><span class="chart-title">📊 月ごとの配達個数</span><span class="chart-badge up" id="chart-badge">集計中</span></div>
+      <div class="chart-legend"><span><i class="dot cnt"></i>配達個数</span><span><i class="dot sales"></i>売上</span></div>
+      <div class="bar-chart-wrap" id="bar-chart"></div>
+      <div class="chart-tap-hint">棒をタップすると売上が出ます</div>
+      <div class="chart-detail" id="chart-detail"></div>
+    </div>
+
+    <div class="btn-grid" style="grid-template-columns:1fr;">
+      <button class="btn-g bg-in" onclick="go('income')" style="padding:16px 8px;"><span class="btn-g-icon">💰</span><span class="btn-g-title">収入を記録</span><span class="btn-g-desc">個数 × 単価</span></button>
+    </div>
+
+    <div class="note">💡 レシート・配達個数・点呼簿・業務簿は下部タブ（レシート／個数／運行記録）から記録できます。</div>
+  </div>
+</div>
+
+<!-- ═══ 収入記録 ═══ -->
+<div id="income" class="screen">
+  <div class="subheader" style="background:var(--income)"><button class="btn-back" onclick="go('home')">‹</button><div><h1>収入を記録</h1><div class="subheader-sub">個数 × 単価で売上を計上</div></div></div>
+  <div class="form-body">
+    <div class="section">
+      <div class="section-title">💰 売上入力</div>
+      <div class="q"><div class="q-label">日付</div><input type="date" class="field" id="in-date"></div>
+      <div class="q"><div class="q-label">内容</div><input type="text" class="field" id="in-content" placeholder="例）ライトランス 八戸便"></div>
+      <div class="q"><div class="row2">
+        <div><div class="q-label">個数</div><input type="text" inputmode="numeric" class="field" id="in-count" value="0" oninput="calcIncomeLive()"></div>
+        <div><div class="q-label">単価</div><input type="text" inputmode="numeric" class="field" id="in-unit" value="0" oninput="calcIncomeLive()"></div>
+      </div></div>
+      <div style="font-size:11px;color:var(--money);background:var(--money-light);border-radius:8px;padding:7px 10px;margin:6px 0 0;line-height:1.5;">🔗 個数は「配達個数」画面で入力した今日の数と連動しています（必要ならここで上書きできます）</div>
+      <div class="q"><div class="q-label">売上</div><div id="in-calc" style="background:var(--income-light);color:var(--income);border-radius:10px;padding:12px 14px;font-size:20px;font-weight:800;text-align:center;">¥0</div></div>
+    </div>
+    <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--income);" onclick="saveIncome()">この売上を記録する</button>
+    <div style="height:14px"></div>
+    <div class="section-label" style="margin-left:2px">今月の収入</div>
+    <div id="income-list"><div class="empty">読み込み中…</div></div>
+  </div>
+</div>
+
+<!-- ═══ 経費記録（レシート読取＋税率） ═══ -->
+<div id="expense" class="screen">
+  <div class="subheader expense"><button class="btn-back" onclick="go('home')">‹</button><div><h1>経費を記録</h1><div class="subheader-sub">撮って、行ごとに経費を選ぶ</div></div></div>
+  <div class="form-body">
+
+    <button class="camera-btn" onclick="scanDemo()">
+      <span class="camera-icon">📷</span>
+      <span>レシートを撮る</span>
+      <span class="camera-sub">商品名・金額・税率を自動で読み取ります</span>
+    </button>
+
+    <div class="section">
+      <div class="section-title">🧾 レシート情報<span id="scan-tag" style="display:none;font-size:10px;color:var(--good);font-weight:800;">✓ 読取済み</span></div>
+      <div class="q"><div class="row2">
+        <div><div class="q-label">日付</div><input type="date" class="field" id="ex-date"></div>
+        <div><div class="q-label">店名</div><input type="text" class="field" id="ex-store" placeholder="例）イオン八戸店"></div>
+      </div></div>
+
+      <div id="scan-toast" class="scan-toast" style="display:none">✅ 読み取りました。内容と税率を確認してください。</div>
+
+      <div class="receipt-head"><div>経費</div><div style="text-align:left">商品名・税率</div><div>金額</div><div></div></div>
+      <div id="receipt-lines"></div>
+      <button class="add-line-btn" onclick="addLine('', '', 8)">＋ 行を追加</button>
+
+      <div class="rate-summary">
+        <div class="rate-sum-box"><div class="rate-sum-label">8%対象 小計</div><div class="rate-sum-val" id="sum8" style="color:var(--money)">¥0</div></div>
+        <div class="rate-sum-box"><div class="rate-sum-label">10%対象 小計</div><div class="rate-sum-val" id="sum10" style="color:var(--expense)">¥0</div></div>
+      </div>
+      <div class="exp-total"><span class="exp-total-label">経費に選んだ合計</span><span class="exp-total-val" id="ex-total">¥0</span></div>
+    </div>
+    <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--expense);" onclick="saveExpense()">このレシートを記録する</button>
+
+    <div style="height:14px"></div>
+    <div class="section-label" style="margin-left:2px">今月の経費</div>
+    <div id="expense-list"><div class="empty">読み込み中…</div></div>
+  </div>
+</div>
+
+<!-- ═══ 配達個数 ═══ -->
+<div id="count" class="screen">
+  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>配達個数</h1><div class="subheader-sub">今日の完了数を記録</div></div></div>
+  <div class="form-body">
+    <div class="count-input-card">
+      <div class="q-label" style="color:var(--sub)" id="count-date">今日</div>
+      <div class="count-big" id="count-val">0</div>
+      <div style="font-size:12px;color:var(--sub)" id="count-remain">目標 100個 ・ あと100個</div>
+      <div class="count-stepper">
+        <button class="step-btn" onclick="stepCount(-1)">－</button>
+        <button class="step-btn" onclick="stepCount(1)">＋</button>
+      </div>
+    </div>
+    <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--money);" onclick="saveCount()">この個数を記録する</button>
+    <div style="font-size:11px;color:var(--money);background:var(--money-light);border-radius:8px;padding:7px 10px;margin-top:10px;line-height:1.5;">🔗 この数はホームの達成率ゲージ・収入記録の個数欄に自動で反映されます</div>
+    <div class="section-label" style="margin-left:2px">目標設定</div>
+    <div class="section" style="padding:12px 14px">
+      <div class="q" style="margin-bottom:0"><div class="q-label">1日の目標個数</div><input type="text" inputmode="numeric" class="field" id="target-input" value="100" onchange="saveTarget()"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 運行記録（点呼簿・業務簿・車両点検をまとめたタブ） ═══ -->
+<div id="drive" class="screen">
+  <div class="subheader drive"><button class="btn-back" onclick="go('home')">‹</button><div><h1>運行記録</h1><div class="subheader-sub">点呼簿・業務簿・車両点検</div></div></div>
+  <div class="form-body">
+    <div class="subtab-row">
+      <button class="subtab-btn active" id="subtab-tenko" onclick="showSub('tenko')">🖐️ 点呼簿</button>
+      <button class="subtab-btn" id="subtab-gyomu" onclick="showSub('gyomu')">📋 業務簿</button>
+      <button class="subtab-btn" id="subtab-vehicle" onclick="showSub('vehicle')">🔧 車両点検</button>
+    </div>
+
+    <!-- ── 点呼簿 ── -->
+    <div class="subpanel active" id="sub-tenko">
+      <div class="section">
+        <div class="section-title">🌅 乗務前点呼</div>
+        <div class="q"><div class="row2">
+          <div><div class="q-label">実施日時</div><input type="datetime-local" class="field" id="tenko-pre-datetime"></div>
+          <div><div class="q-label">点呼執行者</div><input type="text" class="field" id="tenko-pre-executor"></div>
+        </div></div>
+        <div class="q"><div class="q-label">点呼方法</div><div class="chip-row" id="tenko-pre-method">
+          <span class="chip active" onclick="toggleChip(this)">対面</span><span class="chip" onclick="toggleChip(this)">IT点呼</span><span class="chip" onclick="toggleChip(this)">電話等</span>
+        </div></div>
+        <div class="q"><div class="q-label">アルコール検知器使用の有無</div><div class="chip-row" id="tenko-pre-alcohol">
+          <span class="chip active" onclick="toggleChip(this)">有</span><span class="chip" onclick="toggleChip(this)">無</span>
+        </div></div>
+        <div class="q"><div class="q-label">酒気帯びの有無</div><div class="chip-row" id="tenko-pre-drink">
+          <span class="chip active" onclick="toggleChip(this)">無</span><span class="chip" onclick="toggleChip(this)">有</span>
+        </div></div>
+        <div class="q"><div class="q-label">疾病・疲労・睡眠不足等の状況</div><input type="text" class="field" id="tenko-pre-condition" value="なし"></div>
+        <div class="q"><div class="q-label">日常点検の状況</div><div class="chip-row" id="tenko-pre-inspection">
+          <span class="chip active" onclick="toggleChip(this)">実施済み</span><span class="chip" onclick="toggleChip(this)">未実施</span>
+        </div></div>
+        <div class="q"><div class="q-label">その他必要な指示事項（天候等）</div><input type="text" class="field" id="tenko-pre-note" placeholder="任意"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🌙 乗務後点呼</div>
+        <div class="q"><div class="row2">
+          <div><div class="q-label">実施日時</div><input type="datetime-local" class="field" id="tenko-post-datetime"></div>
+          <div><div class="q-label">点呼執行者</div><input type="text" class="field" id="tenko-post-executor"></div>
+        </div></div>
+        <div class="q"><div class="q-label">点呼方法</div><div class="chip-row" id="tenko-post-method">
+          <span class="chip active" onclick="toggleChip(this)">対面</span><span class="chip" onclick="toggleChip(this)">IT点呼</span><span class="chip" onclick="toggleChip(this)">電話等</span>
+        </div></div>
+        <div class="q"><div class="q-label">アルコール検知器使用の有無</div><div class="chip-row" id="tenko-post-alcohol">
+          <span class="chip active" onclick="toggleChip(this)">有</span><span class="chip" onclick="toggleChip(this)">無</span>
+        </div></div>
+        <div class="q"><div class="q-label">酒気帯びの有無</div><div class="chip-row" id="tenko-post-drink">
+          <span class="chip active" onclick="toggleChip(this)">無</span><span class="chip" onclick="toggleChip(this)">有</span>
+        </div></div>
+        <div class="q"><div class="q-label">自動車・道路及び運行の状況</div><input type="text" class="field" id="tenko-post-condition" value="異常なし"></div>
+        <div class="q"><div class="q-label">交替運転者に対する通告</div><input type="text" class="field" id="tenko-post-handover" value="なし"></div>
+        <div class="q"><div class="q-label">その他必要な指示事項</div><input type="text" class="field" id="tenko-post-note" placeholder="任意"></div>
+      </div>
+      <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:#1565C0;" onclick="saveTenko()">この点呼を記録する</button>
+    </div>
+
+    <!-- ── 業務簿 ── -->
+    <div class="subpanel" id="sub-gyomu">
+      <div class="section">
+        <div class="section-title">🚀 業務開始</div>
+        <div class="q"><div class="row2">
+          <div><div class="q-label">運転者</div><input type="text" class="field" id="gyomu-driver"></div>
+          <div><div class="q-label">車両番号</div><input type="text" class="field" id="gyomu-vehicle" placeholder="例）八戸り3222"></div>
+        </div></div>
+        <div class="q"><div class="q-label">出発地</div><input type="text" class="field" id="gyomu-start-place" placeholder="例）おいらせ町営業所"></div>
+        <div class="q"><div class="row2">
+          <div><div class="q-label">出発日時</div><input type="datetime-local" class="field" id="gyomu-start-datetime"></div>
+          <div><div class="q-label">出発時の走行距離計</div><div style="display:flex;align-items:center;gap:8px;"><input type="text" inputmode="numeric" class="field" id="gyomu-start-odo" oninput="calcGyomuDistance()"><span style="font-size:13px;color:var(--sub);white-space:nowrap;">km</span></div></div>
+        </div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">🏁 業務終了</div>
+        <div class="q"><div class="q-label">到着地</div><input type="text" class="field" id="gyomu-end-place" placeholder="例）おいらせ町営業所"></div>
+        <div class="q"><div class="row2">
+          <div><div class="q-label">到着日時</div><input type="datetime-local" class="field" id="gyomu-end-datetime"></div>
+          <div><div class="q-label">到着時の走行距離計</div><div style="display:flex;align-items:center;gap:8px;"><input type="text" inputmode="numeric" class="field" id="gyomu-end-odo" oninput="calcGyomuDistance()"><span style="font-size:13px;color:var(--sub);white-space:nowrap;">km</span></div></div>
+        </div></div>
+        <div class="q"><div class="q-label">走行距離（自動計算・参考表示）</div><div class="calc-box" id="gyomu-distance">0 km</div></div>
+        <div class="q"><div class="q-label">集荷・配達場所など（主な経過地点）</div><textarea class="field" rows="3" style="resize:none;" id="gyomu-route" placeholder="例）八戸市○○倉庫 → 青森市○○工場"></textarea></div>
+      </div>
+      <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:#E65100;" onclick="saveGyomu()">この記録を保存する</button>
+    </div>
+
+    <!-- ── 車両点検 ── -->
+    <div class="subpanel" id="sub-vehicle">
+      <div class="note" style="margin-bottom:12px">🔧 土台アプリの「日常点検」フォームと同じ15項目です。✅異常なし／⚠️要注意／❌異常あり をタップで選んでください。</div>
+
+      <div class="section">
+        <div class="section-title">🔩 エンジンルーム内（5項目）</div>
+        <div class="check-item"><div class="check-name">① ウインド・ウォッシャ液の量</div><div class="check-opts" id="vc1"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">② ブレーキ液の量</div><div class="check-opts" id="vc2"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">③ バッテリー液の量</div><div class="check-opts" id="vc3"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">④ 冷却水の量</div><div class="check-opts" id="vc4"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">⑤ エンジンオイルの量</div><div class="check-opts" id="vc5"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🚛 車体外周（4項目）</div>
+        <div class="check-item"><div class="check-name">⑥ タイヤの空気圧</div><div class="check-opts" id="vc6"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">⑦ タイヤの亀裂・損傷・異常摩耗</div><div class="check-opts" id="vc7"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">⑧ タイヤの溝の深さ</div><div class="check-opts" id="vc8"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">⑨ ランプ類の点灯・点滅・損傷</div><div class="check-opts" id="vc9"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">🪑 運転席（6項目）</div>
+        <div class="check-item"><div class="check-name">⑩ ブレーキペダルの踏みしろ・利き</div><div class="check-opts" id="vc10"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">⑪ パーキングブレーキの引きしろ</div><div class="check-opts" id="vc11"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">⑫ ウォッシャの噴射状態</div><div class="check-opts" id="vc12"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">⑬ ワイパの拭き取り状態</div><div class="check-opts" id="vc13"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">⑭ エンジンのかかり具合・異音</div><div class="check-opts" id="vc14"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+        <div class="check-item"><div class="check-name">⑮ エンジンの低速・加速の状態</div><div class="check-opts" id="vc15"><span class="check-opt ok active" onclick="toggleCheck(this)">✅</span><span class="check-opt warn" onclick="toggleCheck(this)">⚠️</span><span class="check-opt ng" onclick="toggleCheck(this)">❌</span></div></div>
+      </div>
+      <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:#4527A0;" onclick="saveVehicleCheck()">この点検を記録する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 月次レポート（簡易） ═══ -->
+<div id="report" class="screen">
+  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>月次レポート</h1><div class="subheader-sub">損益・税率別の内訳</div></div></div>
+  <div class="form-body">
+    <div class="section" style="padding:16px 18px;text-align:center;">
+      <div style="font-size:12px;color:var(--sub);font-weight:700;" id="report-month">読み込み中</div>
+      <div style="font-size:30px;font-weight:800;color:var(--good);margin-top:6px;" id="report-profit">＋¥0</div>
+      <div style="font-size:11px;color:var(--sub);margin-top:2px;" id="report-breakdown">売上 ¥0 － 経費 ¥0</div>
+    </div>
+    <div class="section">
+      <div class="section-title">税率別 経費内訳</div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;"><span>8%対象</span><span style="font-weight:800;color:var(--money)" id="report-sum8">¥0</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;border-top:1px solid #EEE;"><span>10%対象</span><span style="font-weight:800;color:var(--expense)" id="report-sum10">¥0</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:14px;border-top:2px solid var(--text);font-weight:800;"><span>合計</span><span id="report-tax-total">¥0</span></div>
+    </div>
+    <div class="note">💡 確定申告用のPDF整形は次の段階で対応予定です。ここでは税率別の集計データが持てることを確認する画面です。</div>
+  </div>
+</div>
+
+<!-- ═══ まとめ役ビュー（全員を見る） ═══ -->
+<div id="team" class="screen">
+  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>全員を見る</h1><div class="subheader-sub">まとめ役だけに表示</div></div></div>
+  <div class="form-body">
+    <div class="note" style="margin-bottom:12px">👑 まとめ役はメンバー全員の損益・配達数を確認できます。各メンバーは自分のデータのみ閲覧可能です。</div>
+    <div class="team-list" id="team-list"><div class="empty">読み込み中…</div></div>
+  </div>
+</div>
+
+<!-- ═══ ボトムナビ ═══ -->
+<div class="bottomnav">
+  <button class="bn active" id="nav-home" onclick="go('home')"><span class="bn-icon">🏠</span><span class="bn-txt">ホーム</span></button>
+  <button class="bn" id="nav-expense" onclick="go('expense')"><span class="bn-icon">🧾</span><span class="bn-txt">レシート</span></button>
+  <button class="bn" id="nav-count" onclick="go('count')"><span class="bn-icon">📦</span><span class="bn-txt">個数</span></button>
+  <button class="bn" id="nav-report" onclick="go('report')"><span class="bn-icon">📊</span><span class="bn-txt">グラフ</span></button>
+  <button class="bn" id="nav-drive" onclick="go('drive')"><span class="bn-icon">🚛</span><span class="bn-txt">運行記録</span></button>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- Firebase SDK（compat・v10系） -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+/* ══════════════════════ Firebase 初期化 ══════════════════════ */
+const firebaseConfig = {
+  apiKey: "AIzaSyAKe9kGHDLQCUKMIUFNF316aYnBbia72Ok",
+  authDomain: "tennko-83298.firebaseapp.com",
+  databaseURL: "https://tennko-83298-default-rtdb.firebaseio.com",
+  projectId: "tennko-83298",
+  storageBucket: "tennko-83298.firebasestorage.app",
+  messagingSenderId: "502190926224",
+  appId: "1:502190926224:web:d2860972098a6d385e6b15",
+  measurementId: "G-3BVCC3RCXQ"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+/* ここに書いたメールアドレスで「新規登録」すると、そのアカウントが「まとめ役」になります。
+   北上さんの実際の登録メールアドレスに書き換えてください（複数人可）。
+   後からでも Firebaseコンソール → Realtime Database → users/該当uid/profile/role を
+   "manager" に書き換えれば、まとめ役に変更できます。 */
+const MANAGER_EMAILS = ["nylonman1109@gmail.com"];
+
+var CATS=['燃料費（ガソリン）','車両費・修繕費','保険料','通信費','消耗品費','接待交際費','租税公課','地代家賃','雑費'];
+
+var currentUser=null, currentProfile=null, isManager=false;
+var countVal=0, goalTarget=100;
+var chartData=[];
+var authMode='login';
+
+/* ══════════════════════ 共通ユーティリティ ══════════════════════ */
+function yen(n){ return '¥'+(Math.round(n)||0).toLocaleString('ja-JP'); }
+function yenSigned(n){ n=Math.round(n)||0; return (n>=0?'＋':'－')+yen(Math.abs(n)); }
+function num(v){ var n=parseFloat(String(v).replace(/[^\d.\-]/g,'')); return isNaN(n)?0:Math.abs(n); }
+function esc(s){ return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function val(id){ var e=document.getElementById(id); return e?e.value:''; }
+function toast(msg){
+  var t=document.getElementById('toast'); if(!t)return;
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._toastT);
+  window._toastT=setTimeout(function(){t.classList.remove('show');},1900);
+}
+function dateKey(d){
+  d = d || new Date();
+  var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function todayKey(){ return dateKey(new Date()); }
+function monthKey(dateStr){ return (dateStr||todayKey()).slice(0,7); }
+function fmtDate(d){ return d ? d.slice(5) : ''; }
+function nowLocalInput(){
+  var d=new Date();
+  var pad=function(n){return String(n).padStart(2,'0');};
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+function lastMonths(n){
+  var arr=[]; var now=new Date();
+  for(var i=n-1;i>=0;i--){
+    var dt=new Date(now.getFullYear(), now.getMonth()-i, 1);
+    var key=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+    arr.push({key:key, label:(dt.getMonth()+1)+'月'});
+  }
+  return arr;
+}
+
+/* ══════════════════════ 画面切替 ══════════════════════ */
+function go(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.bn').forEach(function(b){b.classList.remove('active');});
+  var nav=document.getElementById('nav-'+id); if(nav)nav.classList.add('active');
+  window.scrollTo(0,0);
+  if(!currentUser) return;
+  if(id==='home') refreshHome();
+  else if(id==='income') loadIncomeScreen();
+  else if(id==='expense') loadExpenseScreen();
+  else if(id==='count') loadCountScreen();
+  else if(id==='drive') loadDriveToday();
+  else if(id==='report') loadReport();
+  else if(id==='team') loadTeam();
+}
+function showSub(id){
+  document.querySelectorAll('.subtab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('subtab-'+id).classList.add('active');
+  document.querySelectorAll('.subpanel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('sub-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function goDrive(sub){ go('drive'); showSub(sub); }
+
+/* チップ選択（見た目） */
+function toggleChip(el){
+  var group=el.parentElement;
+  group.querySelectorAll('.chip').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+}
+function getChipValue(groupId){
+  var g=document.getElementById(groupId);
+  var act=g.querySelector('.chip.active');
+  return act?act.textContent:'';
+}
+function setChipValue(groupId, value){
+  var g=document.getElementById(groupId); if(!g) return;
+  var found=false;
+  g.querySelectorAll('.chip').forEach(function(c){
+    var match=c.textContent===value;
+    if(match) found=true;
+    c.classList.toggle('active', match);
+  });
+  if(!found){ var first=g.querySelector('.chip'); if(first) first.classList.add('active'); }
+}
+
+/* 車両点検3択 */
+function toggleCheck(el){
+  var group=el.parentElement;
+  group.querySelectorAll('.check-opt').forEach(function(c){c.classList.remove('active');});
+  el.classList.add('active');
+}
+function getCheckValue(id){
+  var g=document.getElementById(id);
+  var act=g.querySelector('.check-opt.active');
+  if(!act) return '';
+  return act.classList.contains('ok')?'ok':act.classList.contains('warn')?'warn':'ng';
+}
+function setCheckValue(id, value){
+  var g=document.getElementById(id); if(!g) return;
+  g.querySelectorAll('.check-opt').forEach(function(c){
+    var match=(value==='ok'&&c.classList.contains('ok'))||(value==='warn'&&c.classList.contains('warn'))||(value==='ng'&&c.classList.contains('ng'));
+    c.classList.toggle('active', match);
+  });
+}
+
+/* ══════════════════════ 認証 ══════════════════════ */
+function switchAuthTab(mode){
+  authMode=mode;
+  document.getElementById('tab-login').classList.toggle('active', mode==='login');
+  document.getElementById('tab-register').classList.toggle('active', mode==='register');
+  document.getElementById('register-name-field').style.display = mode==='register' ? 'block' : 'none';
+  document.getElementById('auth-submit-btn').textContent = mode==='register' ? '新規登録する' : 'ログイン';
+  document.getElementById('login-foot').textContent = mode==='register' ? '登録すると自動でログインされます' : '初めての方は上の「新規登録」から登録してください';
+  hideAuthError();
+}
+function showAuthError(msg){ var e=document.getElementById('auth-error'); e.textContent=msg; e.style.display='block'; }
+function hideAuthError(){ document.getElementById('auth-error').style.display='none'; }
+function authErrMsg(err){
+  var map={
+    'auth/email-already-in-use':'このメールアドレスは既に登録されています',
+    'auth/invalid-email':'メールアドレスの形式が正しくありません',
+    'auth/weak-password':'パスワードは6文字以上にしてください',
+    'auth/user-not-found':'メールアドレスまたはパスワードが違います',
+    'auth/wrong-password':'メールアドレスまたはパスワードが違います',
+    'auth/invalid-credential':'メールアドレスまたはパスワードが違います',
+    'auth/too-many-requests':'試行回数が多すぎます。しばらくしてからお試しください',
+    'auth/network-request-failed':'通信エラーです。ネット接続を確認してください'
+  };
+  return map[err.code] || ('エラー: '+err.message);
+}
+function submitAuth(){
+  hideAuthError();
+  var email=document.getElementById('auth-email').value.trim();
+  var pw=document.getElementById('auth-password').value;
+  if(!email || !pw){ showAuthError('メールアドレスとパスワードを入力してください'); return; }
+  var btn=document.getElementById('auth-submit-btn');
+  btn.disabled=true;
+  if(authMode==='register'){
+    var name=document.getElementById('auth-name').value.trim() || 'ドライバー';
+    auth.createUserWithEmailAndPassword(email, pw).then(function(cred){
+      var role = MANAGER_EMAILS.indexOf(email.toLowerCase())>=0 ? 'manager' : 'driver';
+      var profile = {name:name, role:role, targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
+      return db.ref('users/'+cred.user.uid+'/profile').set(profile).then(function(){
+        currentUser=cred.user;
+        currentProfile=profile;
+        finishInit();
+      });
+    }).catch(function(err){ showAuthError(authErrMsg(err)); }).finally(function(){btn.disabled=false;});
+  } else {
+    auth.signInWithEmailAndPassword(email, pw).catch(function(err){
+      showAuthError(authErrMsg(err));
+    }).finally(function(){btn.disabled=false;});
+  }
+}
+function logout(){ auth.signOut(); }
+
+auth.onAuthStateChanged(function(user){
+  if(user){
+    currentUser=user;
+    db.ref('users/'+user.uid+'/profile').once('value').then(function(snap){
+      var p=snap.val();
+      if(p){ currentProfile=p; finishInit(); return; }
+      /* プロフィールが無い場合（登録直後の書き込み待ち、または何らかの理由で
+         プロフィール作成に失敗したアカウント）は、ここで最低限のプロフィールを
+         自動作成してログイン不能状態を防ぐ。登録フロー側の finishInit と
+         二重に走っても最終的な内容は同じなので問題ない。 */
+      var role = MANAGER_EMAILS.indexOf((user.email||'').toLowerCase())>=0 ? 'manager' : 'driver';
+      var fallbackProfile = {name:(user.email||'ドライバー').split('@')[0], role:role, targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
+      db.ref('users/'+user.uid+'/profile').set(fallbackProfile).then(function(){
+        currentProfile=fallbackProfile; finishInit();
+      });
+    });
+  } else {
+    currentUser=null; currentProfile=null; isManager=false;
+    go('login');
+  }
+});
+
+function finishInit(){
+  isManager = currentProfile.role==='manager';
+  goalTarget = currentProfile.targetCount || 100;
+  document.getElementById('header-username').textContent = 'ログイン中: '+(currentProfile.name||currentUser.email)+'さん';
+  document.getElementById('header-avatar').textContent = (currentProfile.name||'ド').charAt(0);
+  document.getElementById('btn-team').style.display = isManager ? 'flex' : 'none';
+  go('home');
+}
+
+/* ══════════════════════ ホーム ══════════════════════ */
+function refreshHome(){
+  var ym=monthKey(todayKey());
+  document.getElementById('home-month').textContent=Number(ym.slice(5,7))+'月の収支';
+
+  db.ref('users/'+currentUser.uid+'/deliveries/'+todayKey()).once('value').then(function(snap){
+    var v=snap.val();
+    countVal = (v && v.count) || 0;
+    syncCountViews();
+  });
+
+  computeMonthlyStats(currentUser.uid, ym).then(function(stats){
+    document.getElementById('home-sales').textContent=yen(stats.sales);
+    document.getElementById('home-expense').textContent=yen(stats.expenseTotal);
+    var profit=stats.sales-stats.expenseTotal;
+    var main=document.getElementById('home-profit-main');
+    main.className='profit-main '+(profit>=0?'good':'bad');
+    document.getElementById('home-profit-val').textContent=yenSigned(profit);
+  });
+
+  loadChart();
+}
+function syncCountViews(){
+  var cv=document.getElementById('count-val'); if(cv) cv.textContent=countVal;
+  var remain=document.getElementById('count-remain');
+  if(remain){
+    var left=Math.max(0, goalTarget-countVal);
+    remain.textContent='目標 '+goalTarget+'個 ・ あと'+left+'個';
+  }
+  var pct = goalTarget>0 ? Math.min(999, Math.round(countVal/goalTarget*100)) : 0;
+  var gc=document.getElementById('goal-count'); if(gc) gc.textContent=countVal;
+  var gt=document.getElementById('goal-target'); if(gt) gt.textContent=goalTarget;
+  var gb=document.getElementById('goal-bar');
+  if(gb){
+    gb.style.width=Math.min(100,pct)+'%';
+    gb.className='goal-bar-fill '+(pct>=100?'green':pct>=60?'yellow':'red');
+  }
+  var gp=document.getElementById('goal-pct'); if(gp) gp.textContent='達成率 '+pct+'%';
+}
+function stepCount(d){
+  countVal=Math.max(0,countVal+d);
+  syncCountViews();
+}
+
+/* 当月の売上・経費・税率別小計を集計 */
+function computeMonthlyStats(uid, ym){
+  return Promise.all([
+    db.ref('users/'+uid+'/income').once('value'),
+    db.ref('users/'+uid+'/expenses').once('value')
+  ]).then(function(results){
+    var incomeSnap=results[0], expenseSnap=results[1];
+    var sales=0, expenseTotal=0, sum8=0, sum10=0;
+    incomeSnap.forEach(function(child){
+      var v=child.val();
+      if(v && v.date && v.date.slice(0,7)===ym) sales += Number(v.amount)||0;
+    });
+    expenseSnap.forEach(function(child){
+      var v=child.val();
+      if(v && v.date && v.date.slice(0,7)===ym){
+        expenseTotal += Number(v.total)||0;
+        sum8 += Number(v.sum8)||0;
+        sum10 += Number(v.sum10)||0;
+      }
+    });
+    return {sales:sales, expenseTotal:expenseTotal, sum8:sum8, sum10:sum10};
+  });
+}
+
+/* 月次バーチャート */
+function loadChart(){
+  var months=lastMonths(6);
+  Promise.all([
+    db.ref('users/'+currentUser.uid+'/deliveries').once('value'),
+    db.ref('users/'+currentUser.uid+'/income').once('value')
+  ]).then(function(results){
+    var delSnap=results[0], incSnap=results[1];
+    var cntByMonth={}, salesByMonth={};
+    months.forEach(function(m){cntByMonth[m.key]=0; salesByMonth[m.key]=0;});
+    delSnap.forEach(function(child){
+      var v=child.val(); var ym=child.key.slice(0,7);
+      if(cntByMonth.hasOwnProperty(ym)) cntByMonth[ym]+=Number(v && v.count)||0;
+    });
+    incSnap.forEach(function(child){
+      var v=child.val();
+      if(v && v.date){
+        var ym=v.date.slice(0,7);
+        if(salesByMonth.hasOwnProperty(ym)) salesByMonth[ym]+=Number(v.amount)||0;
+      }
+    });
+    chartData = months.map(function(m){return {m:m.label, cnt:cntByMonth[m.key], sales:salesByMonth[m.key]};});
+    renderBarChart();
+    var badge=document.getElementById('chart-badge');
+    if(chartData.length>=2){
+      var cur=chartData[chartData.length-1].cnt, prev=chartData[chartData.length-2].cnt;
+      var diffPct = prev>0 ? Math.round((cur-prev)/prev*100) : (cur>0?100:0);
+      badge.textContent='前月比 '+(diffPct>=0?'＋':'')+diffPct+'%';
+      badge.className='chart-badge '+(diffPct>=0?'up':'down');
+    } else {
+      badge.textContent='データ収集中';
+      badge.className='chart-badge up';
+    }
+  });
+}
+function renderBarChart(){
+  var w=310, h=140, padB=20, padT=10, gap=14;
+  var n=chartData.length; if(!n){ document.getElementById('bar-chart').innerHTML=''; return; }
+  var barW=(w-gap*(n-1))/n;
+  var maxCnt=Math.max.apply(null,chartData.map(function(d){return d.cnt;}))*1.1 || 1;
+  var svg='<svg viewBox="0 0 '+w+' '+(h+22)+'" width="100%" style="display:block">';
+  chartData.forEach(function(d,i){
+    var x=i*(barW+gap);
+    var barH=(d.cnt/maxCnt)*(h-padT-padB);
+    var y=h-padB-barH;
+    var isLast=(i===n-1);
+    var color=isLast?'#1565C0':'#90CAF9';
+    svg+='<rect x="'+x+'" y="'+y+'" width="'+barW+'" height="'+barH+'" rx="5" fill="'+color+'" style="cursor:pointer" onclick="showBarDetail('+i+')"></rect>';
+    svg+='<text x="'+(x+barW/2)+'" y="'+(y-5)+'" font-size="9" fill="#546E7A" text-anchor="middle" font-weight="700">'+d.cnt+'</text>';
+    svg+='<text x="'+(x+barW/2)+'" y="'+(h+14)+'" font-size="10" fill="#546E7A" text-anchor="middle">'+d.m+'</text>';
+  });
+  svg+='</svg>';
+  document.getElementById('bar-chart').innerHTML=svg;
+}
+function showBarDetail(i){
+  var d=chartData[i];
+  var el=document.getElementById('chart-detail');
+  el.textContent=d.m+'：配達 '+d.cnt+'個 ／ 売上 '+yen(d.sales);
+  el.classList.add('show');
+}
+
+/* ══════════════════════ 収入 ══════════════════════ */
+function loadIncomeScreen(){
+  document.getElementById('in-date').value = todayKey();
+  document.getElementById('in-count').value = countVal || 0;
+  calcIncomeLive();
+  loadIncomeList();
+}
+function calcIncomeLive(){
+  var c=document.getElementById('in-count'), u=document.getElementById('in-unit'), out=document.getElementById('in-calc');
+  if(!c||!u||!out) return;
+  out.textContent=yen(num(c.value)*num(u.value));
+}
+function saveIncome(){
+  var date=document.getElementById('in-date').value;
+  var content=document.getElementById('in-content').value.trim();
+  var count=num(document.getElementById('in-count').value);
+  var unit=num(document.getElementById('in-unit').value);
+  var amount=count*unit;
+  if(!date){ toast('⚠️ 日付を入力してください'); return; }
+  var ref=db.ref('users/'+currentUser.uid+'/income').push();
+  ref.set({date:date, content:content, count:count, unitPrice:unit, amount:amount, createdAt:firebase.database.ServerValue.TIMESTAMP})
+    .then(function(){
+      toast('✅ 収入を記録しました');
+      document.getElementById('in-content').value='';
+      loadIncomeList();
+    }).catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
+}
+function loadIncomeList(){
+  var listEl=document.getElementById('income-list');
+  listEl.innerHTML='<div class="empty">読み込み中…</div>';
+  db.ref('users/'+currentUser.uid+'/income').limitToLast(20).once('value').then(function(snap){
+    var items=[];
+    snap.forEach(function(c){ items.push(c.val()); });
+    items.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+    if(!items.length){ listEl.innerHTML='<div class="empty">まだ記録がありません</div>'; return; }
+    listEl.innerHTML = items.map(function(it){
+      var sub = it.count ? (it.count+'個 × ¥'+it.unitPrice) : '金額入力';
+      return '<div class="list-item"><div><div class="li-main">'+esc(it.content||'収入')+'</div><div class="li-sub">'+fmtDate(it.date)+' ・ '+sub+'</div></div><span class="li-amt in">'+yen(it.amount)+'</span></div>';
+    }).join('');
+  });
+}
+
+/* ══════════════════════ 経費（レシート） ══════════════════════ */
+function addLine(name,price,rate,cat){
+  var wrap=document.getElementById('receipt-lines');
+  var div=document.createElement('div'); div.className='receipt-line';
+  var opts='<option value=""'+(cat?'':' selected')+' disabled>▼カテゴリを選択</option>'+
+    CATS.map(function(c){return '<option'+(c===cat?' selected':'')+'>'+c+'</option>';}).join('');
+  rate=rate||10;
+  div.innerHTML=
+    '<div class="rl-row1">'+
+      '<button type="button" class="rl-toggle" aria-label="経費にする" onclick="toggleLine(this)"></button>'+
+      '<input type="text" class="rl-name" placeholder="商品名" value="'+(name?esc(name):'')+'">'+
+      '<input type="text" inputmode="numeric" class="rl-price" placeholder="0" value="'+(price||'')+'" oninput="calcExpTotal()">'+
+      '<button class="rl-del" aria-label="削除" onclick="this.closest(\'.receipt-line\').remove();calcExpTotal()">✕</button>'+
+    '</div>'+
+    '<div class="rl-row2">'+
+      '<div class="rate-toggle">'+
+        '<button type="button" class="rate-btn'+(rate===8?' active':'')+'" data-rate="8" onclick="setRate(this,8)">8%</button>'+
+        '<button type="button" class="rate-btn'+(rate===10?' active':'')+'" data-rate="10" onclick="setRate(this,10)">10%</button>'+
+      '</div>'+
+      '<select required>'+opts+'</select>'+
+    '</div>';
+  wrap.appendChild(div);
+}
+function setRate(btn,rate){
+  var wrap=btn.parentNode;
+  wrap.querySelectorAll('.rate-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  calcExpTotal();
+}
+function toggleLine(btn){ btn.closest('.receipt-line').classList.toggle('picked'); calcExpTotal(); }
+function calcExpTotal(){
+  var t8=0,t10=0,total=0;
+  document.querySelectorAll('#receipt-lines .receipt-line').forEach(function(l){
+    if(!l.classList.contains('picked'))return;
+    var price=num(l.querySelector('.rl-price').value);
+    var activeBtn=l.querySelector('.rate-btn.active');
+    var rate=activeBtn?activeBtn.getAttribute('data-rate'):'10';
+    total+=price;
+    if(rate==='8')t8+=price; else t10+=price;
+  });
+  document.getElementById('ex-total').textContent=yen(total);
+  document.getElementById('sum8').textContent=yen(t8);
+  document.getElementById('sum10').textContent=yen(t10);
+}
+function initReceipt(){
+  document.getElementById('receipt-lines').innerHTML='';
+  addLine('', '', 10); addLine('','',10); addLine('','',10);
+  calcExpTotal();
+}
+/* レシート撮影デモ（見た目だけ：自動で行が埋まる演出。実OCRは第2弾） */
+function scanDemo(){
+  document.getElementById('receipt-lines').innerHTML='';
+  addLine('軽油 満タン',6800,8,'燃料費（ガソリン）');
+  addLine('アクエリアス',138,8);
+  addLine('お弁当',498,8);
+  addLine('軍手',298,10);
+  addLine('タイヤ交換工賃',24000,10,'車両費・修繕費');
+  var lines=document.querySelectorAll('#receipt-lines .receipt-line');
+  [0,3,4].forEach(function(i){ if(lines[i]) lines[i].classList.add('picked'); });
+  calcExpTotal();
+  document.getElementById('scan-toast').style.display='flex';
+  document.getElementById('scan-tag').style.display='inline';
+  toast('📷 レシートを読み取りました（デモ演出）');
+}
+function validateExpenseCats(){
+  var missing=null;
+  document.querySelectorAll('#receipt-lines .receipt-line.picked').forEach(function(l){
+    var sel=l.querySelector('.rl-row2 select');
+    if(sel && !sel.value && !missing) missing=sel;
+  });
+  return missing;
+}
+function loadExpenseScreen(){
+  document.getElementById('ex-date').value = todayKey();
+  document.getElementById('ex-store').value = '';
+  document.getElementById('scan-toast').style.display='none';
+  document.getElementById('scan-tag').style.display='none';
+  initReceipt();
+  loadExpenseList();
+}
+function saveExpense(){
+  var missing=validateExpenseCats();
+  if(missing){
+    toast('⚠️ カテゴリ未選択の行があります。選んでから記録してください');
+    missing.focus();
+    missing.scrollIntoView({block:'center',behavior:'smooth'});
+    return;
+  }
+  var date=document.getElementById('ex-date').value;
+  var store=document.getElementById('ex-store').value.trim();
+  if(!date){ toast('⚠️ 日付を入力してください'); return; }
+  var lines=[]; var total=0, sum8=0, sum10=0;
+  document.querySelectorAll('#receipt-lines .receipt-line').forEach(function(l){
+    var name=l.querySelector('.rl-name').value.trim();
+    var price=num(l.querySelector('.rl-price').value);
+    var picked=l.classList.contains('picked');
+    var rateBtn=l.querySelector('.rate-btn.active');
+    var rate=rateBtn?Number(rateBtn.getAttribute('data-rate')):10;
+    var sel=l.querySelector('.rl-row2 select');
+    var category=sel?sel.value:'';
+    if(!name && !price) return;
+    lines.push({name:name, price:price, rate:rate, category:category, isExpense:picked});
+    if(picked){ total+=price; if(rate===8) sum8+=price; else sum10+=price; }
+  });
+  if(!lines.length){ toast('⚠️ レシートの行を入力してください'); return; }
+  var ref=db.ref('users/'+currentUser.uid+'/expenses').push();
+  ref.set({date:date, store:store, lines:lines, total:total, sum8:sum8, sum10:sum10, createdAt:firebase.database.ServerValue.TIMESTAMP})
+    .then(function(){
+      toast('✅ 経費を記録しました');
+      loadExpenseScreen();
+    }).catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
+}
+function loadExpenseList(){
+  var listEl=document.getElementById('expense-list');
+  listEl.innerHTML='<div class="empty">読み込み中…</div>';
+  db.ref('users/'+currentUser.uid+'/expenses').limitToLast(20).once('value').then(function(snap){
+    var items=[];
+    snap.forEach(function(c){ items.push(c.val()); });
+    items.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+    if(!items.length){ listEl.innerHTML='<div class="empty">まだ記録がありません</div>'; return; }
+    listEl.innerHTML = items.map(function(it){
+      var cnt=(it.lines||[]).filter(function(l){return l.isExpense;}).length;
+      return '<div class="list-item"><div><div class="li-main">'+esc(it.store||'経費')+'</div><div class="li-sub">'+fmtDate(it.date)+' ・ 経費 '+cnt+'品</div></div><span class="li-amt ex">'+yen(it.total)+'</span></div>';
+    }).join('');
+  });
+}
+
+/* ══════════════════════ 配達個数 ══════════════════════ */
+function loadCountScreen(){
+  var d=new Date();
+  document.getElementById('count-date').textContent = d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+  document.getElementById('target-input').value = goalTarget;
+  syncCountViews();
+}
+function saveCount(){
+  db.ref('users/'+currentUser.uid+'/deliveries/'+todayKey()).set({count:countVal, updatedAt:firebase.database.ServerValue.TIMESTAMP})
+    .then(function(){ toast('✅ 今日の個数を記録しました'); })
+    .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
+}
+function saveTarget(){
+  var v=num(document.getElementById('target-input').value);
+  if(v<=0) v=100;
+  goalTarget=v;
+  db.ref('users/'+currentUser.uid+'/profile/targetCount').set(v);
+  syncCountViews();
+  toast('🎯 目標を更新しました');
+}
+
+/* ══════════════════════ 運行記録：点呼簿 ══════════════════════ */
+function loadDriveToday(){
+  loadTenko();
+  loadGyomu();
+  loadVehicleCheck();
+}
+function loadTenko(){
+  db.ref('users/'+currentUser.uid+'/tenko/'+todayKey()).once('value').then(function(snap){
+    var v=snap.val();
+    if(v){
+      document.getElementById('tenko-pre-datetime').value=v.pre.datetime||'';
+      document.getElementById('tenko-pre-executor').value=v.pre.executor||'';
+      setChipValue('tenko-pre-method', v.pre.method);
+      setChipValue('tenko-pre-alcohol', v.pre.alcoholCheck);
+      setChipValue('tenko-pre-drink', v.pre.drinking);
+      document.getElementById('tenko-pre-condition').value=v.pre.condition||'';
+      setChipValue('tenko-pre-inspection', v.pre.inspection);
+      document.getElementById('tenko-pre-note').value=v.pre.note||'';
+      document.getElementById('tenko-post-datetime').value=v.post.datetime||'';
+      document.getElementById('tenko-post-executor').value=v.post.executor||'';
+      setChipValue('tenko-post-method', v.post.method);
+      setChipValue('tenko-post-alcohol', v.post.alcoholCheck);
+      setChipValue('tenko-post-drink', v.post.drinking);
+      document.getElementById('tenko-post-condition').value=v.post.roadCondition||'';
+      document.getElementById('tenko-post-handover').value=v.post.handover||'';
+      document.getElementById('tenko-post-note').value=v.post.note||'';
+    } else {
+      document.getElementById('tenko-pre-datetime').value=nowLocalInput();
+      document.getElementById('tenko-pre-executor').value=(currentProfile&&currentProfile.name)||'';
+      document.getElementById('tenko-post-datetime').value='';
+      document.getElementById('tenko-post-executor').value=(currentProfile&&currentProfile.name)||'';
+    }
+  });
+}
+function saveTenko(){
+  var data={
+    pre:{
+      datetime:val('tenko-pre-datetime'), executor:val('tenko-pre-executor'),
+      method:getChipValue('tenko-pre-method'), alcoholCheck:getChipValue('tenko-pre-alcohol'),
+      drinking:getChipValue('tenko-pre-drink'), condition:val('tenko-pre-condition'),
+      inspection:getChipValue('tenko-pre-inspection'), note:val('tenko-pre-note')
+    },
+    post:{
+      datetime:val('tenko-post-datetime'), executor:val('tenko-post-executor'),
+      method:getChipValue('tenko-post-method'), alcoholCheck:getChipValue('tenko-post-alcohol'),
+      drinking:getChipValue('tenko-post-drink'), roadCondition:val('tenko-post-condition'),
+      handover:val('tenko-post-handover'), note:val('tenko-post-note')
+    },
+    updatedAt: firebase.database.ServerValue.TIMESTAMP
+  };
+  db.ref('users/'+currentUser.uid+'/tenko/'+todayKey()).set(data)
+    .then(function(){ toast('✅ 点呼を記録しました'); })
+    .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
+}
+
+/* ══════════════════════ 運行記録：業務簿 ══════════════════════ */
+function calcGyomuDistance(){
+  var s=num(val('gyomu-start-odo')), e=num(val('gyomu-end-odo'));
+  var d=Math.max(0, e-s);
+  document.getElementById('gyomu-distance').textContent = d+' km';
+}
+function loadGyomu(){
+  db.ref('users/'+currentUser.uid+'/gyomu/'+todayKey()).once('value').then(function(snap){
+    var v=snap.val();
+    if(v){
+      document.getElementById('gyomu-driver').value=v.driver||'';
+      document.getElementById('gyomu-vehicle').value=v.vehicle||'';
+      document.getElementById('gyomu-start-place').value=v.startPlace||'';
+      document.getElementById('gyomu-start-datetime').value=v.startDatetime||'';
+      document.getElementById('gyomu-start-odo').value=v.startOdo||'';
+      document.getElementById('gyomu-end-place').value=v.endPlace||'';
+      document.getElementById('gyomu-end-datetime').value=v.endDatetime||'';
+      document.getElementById('gyomu-end-odo').value=v.endOdo||'';
+      document.getElementById('gyomu-route').value=v.route||'';
+    } else {
+      document.getElementById('gyomu-driver').value=(currentProfile&&currentProfile.name)||'';
+      document.getElementById('gyomu-vehicle').value='';
+      document.getElementById('gyomu-start-place').value='';
+      document.getElementById('gyomu-start-datetime').value=nowLocalInput();
+      document.getElementById('gyomu-start-odo').value='';
+      document.getElementById('gyomu-end-place').value='';
+      document.getElementById('gyomu-end-datetime').value='';
+      document.getElementById('gyomu-end-odo').value='';
+      document.getElementById('gyomu-route').value='';
+    }
+    calcGyomuDistance();
+  });
+}
+function saveGyomu(){
+  var data={
+    driver:val('gyomu-driver'), vehicle:val('gyomu-vehicle'),
+    startPlace:val('gyomu-start-place'), startDatetime:val('gyomu-start-datetime'), startOdo:num(val('gyomu-start-odo')),
+    endPlace:val('gyomu-end-place'), endDatetime:val('gyomu-end-datetime'), endOdo:num(val('gyomu-end-odo')),
+    route:val('gyomu-route'),
+    updatedAt: firebase.database.ServerValue.TIMESTAMP
+  };
+  db.ref('users/'+currentUser.uid+'/gyomu/'+todayKey()).set(data)
+    .then(function(){ toast('✅ 業務簿を記録しました'); })
+    .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
+}
+
+/* ══════════════════════ 運行記録：車両点検 ══════════════════════ */
+function loadVehicleCheck(){
+  db.ref('users/'+currentUser.uid+'/vehicleCheck/'+todayKey()).once('value').then(function(snap){
+    var v=snap.val();
+    if(v){
+      for(var i=1;i<=15;i++){ setCheckValue('vc'+i, v['item'+i]||'ok'); }
+    }
+    /* 記録が無い日は各項目のデフォルト表示（✅異常なし）のまま */
+  });
+}
+function saveVehicleCheck(){
+  var data={};
+  for(var i=1;i<=15;i++){ data['item'+i]=getCheckValue('vc'+i); }
+  data.updatedAt=firebase.database.ServerValue.TIMESTAMP;
+  db.ref('users/'+currentUser.uid+'/vehicleCheck/'+todayKey()).set(data)
+    .then(function(){ toast('✅ 車両点検を記録しました'); })
+    .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
+}
+
+/* ══════════════════════ 月次レポート ══════════════════════ */
+function loadReport(){
+  var ym=monthKey(todayKey());
+  computeMonthlyStats(currentUser.uid, ym).then(function(stats){
+    var profit=stats.sales-stats.expenseTotal;
+    document.getElementById('report-month').textContent=ym.slice(0,4)+'年'+Number(ym.slice(5,7))+'月分';
+    var profitEl=document.getElementById('report-profit');
+    profitEl.textContent=yenSigned(profit);
+    profitEl.style.color = profit>=0 ? 'var(--good)' : 'var(--bad)';
+    document.getElementById('report-breakdown').textContent='売上 '+yen(stats.sales)+' － 経費 '+yen(stats.expenseTotal);
+    document.getElementById('report-sum8').textContent=yen(stats.sum8);
+    document.getElementById('report-sum10').textContent=yen(stats.sum10);
+    document.getElementById('report-tax-total').textContent=yen(stats.sum8+stats.sum10);
+  });
+}
+
+/* ══════════════════════ まとめ役ビュー ══════════════════════ */
+function loadTeam(){
+  var listEl=document.getElementById('team-list');
+  if(!isManager){ listEl.innerHTML='<div class="empty">閲覧権限がありません</div>'; return; }
+  listEl.innerHTML='<div class="empty">読み込み中…</div>';
+  var ym=monthKey(todayKey());
+  db.ref('users').once('value').then(function(snap){
+    var uids=[]; snap.forEach(function(c){uids.push(c.key);});
+    return Promise.all(uids.map(function(uid){
+      return Promise.all([
+        db.ref('users/'+uid+'/profile').once('value'),
+        db.ref('users/'+uid+'/deliveries/'+todayKey()).once('value'),
+        computeMonthlyStats(uid, ym)
+      ]).then(function(r){
+        var profile=r[0].val()||{}; var today=r[1].val()||{count:0}; var stats=r[2];
+        return {
+          name:profile.name||'名称未設定', role:profile.role||'driver',
+          target:profile.targetCount||100, todayCount:today.count||0,
+          profit:stats.sales-stats.expenseTotal
+        };
+      });
+    }));
+  }).then(function(rows){
+    rows.sort(function(a,b){ return (a.role==='manager'?0:1)-(b.role==='manager'?0:1); });
+    if(!rows.length){ listEl.innerHTML='<div class="empty">メンバーがいません</div>'; return; }
+    listEl.innerHTML = rows.map(function(r){
+      var badge = r.role==='manager' ? '<span class="badge-leader">まとめ役</span>' : '';
+      var cls = r.profit>=0?'good':'bad';
+      return '<div class="team-item"><div class="team-avatar">'+esc((r.name||'ド').charAt(0))+'</div>'+
+        '<div class="team-info"><div class="team-name">'+esc(r.name)+badge+'</div>'+
+        '<div class="team-sub">今日 '+r.todayCount+'/'+r.target+'個 ・ '+Number(ym.slice(5,7))+'月</div></div>'+
+        '<div class="team-profit '+cls+'">'+yenSigned(r.profit)+'</div></div>';
+    }).join('');
+  });
+}
+</script>
+</body>
+</html>
