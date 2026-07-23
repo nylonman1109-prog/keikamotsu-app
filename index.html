@@ -2,9 +2,21 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>軽貨物まるごとアプリ 強化版</title>
+
+<!-- PWA: ホーム画面に追加してアプリのように起動するための設定 -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1565C0">
+
+<!-- iOS向け(Safariはmanifestのアイコンやテーマカラーを見ないため個別指定) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="軽貨物まるごと">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+
+<!-- 通常のファビコン代わり -->
+<link rel="icon" href="./icons/icon-192.png" type="image/png">
 <style>
 :root{
   --bg:#F0F4F8; --card:#FFFFFF; --text:#1A1A2E; --sub:#546E7A;
@@ -20,7 +32,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{overscroll-behavior-y:none;}
-body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:74px;max-width:480px;margin:0 auto;position:relative;}
+body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:calc(74px + env(safe-area-inset-bottom));max-width:480px;margin:0 auto;position:relative;}
 
 .screen{display:none;min-height:100vh;flex-direction:column;}
 .screen.active{display:flex;}
@@ -219,7 +231,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .login-foot{text-align:center;font-size:10px;color:#B0BEC5;margin-top:16px;line-height:1.6;}
 
 /* ボトムナビ */
-.bottomnav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);display:flex;z-index:20;box-shadow:0 -2px 10px rgba(0,0,0,.06);max-width:480px;margin:0 auto;}
+.bottomnav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);display:flex;z-index:20;box-shadow:0 -2px 10px rgba(0,0,0,.06);max-width:480px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom);}
 .bn{flex:1;border:none;background:none;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--sub);}
 .bn.active{color:var(--money);}
 .bn-icon{font-size:20px;} .bn-txt{font-size:10px;font-weight:700;}
@@ -1257,6 +1269,15 @@ function loadTeam(){
         '<div class="team-sub">今日 '+r.todayCount+'/'+r.target+'個 ・ '+Number(ym.slice(5,7))+'月</div></div>'+
         '<div class="team-profit '+cls+'">'+yenSigned(r.profit)+'</div></div>';
     }).join('');
+  });
+}
+
+// PWA: Service Worker登録(相対パス。GitHub Pagesのサブパス配下でも壊れない)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js').catch(function (err) {
+      console.warn('SW登録失敗', err);
+    });
   });
 }
 </script>
