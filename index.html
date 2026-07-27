@@ -238,6 +238,24 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .login-btn:active{transform:scale(.98);}
 .login-btn:disabled{opacity:.6;}
 .login-foot{text-align:center;font-size:10px;color:#B0BEC5;margin-top:16px;line-height:1.6;}
+.login-forgot{display:block;text-align:right;font-size:13px;font-weight:800;color:var(--money);margin-top:12px;text-decoration:underline;cursor:pointer;padding:4px 2px;}
+
+/* パスワード再設定モーダル */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:24px;z-index:100;}
+.modal-card{background:white;border-radius:20px;padding:28px 24px;width:100%;max-width:340px;box-shadow:0 12px 30px rgba(0,0,0,.3);}
+.modal-title{font-size:17px;font-weight:800;margin-bottom:6px;text-align:center;}
+.modal-sub{font-size:12px;color:var(--sub);text-align:center;margin-bottom:18px;line-height:1.6;}
+
+/* まとめ役向け：承認待ちバナー（ホーム上部） */
+.pending-banner{display:none;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#F9A825,#F57F17);color:#fff;font-size:12px;font-weight:800;padding:11px 16px;text-align:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+.pending-banner:active{opacity:.85;}
+
+/* 承認依頼メールボタン（承認待ちゲート画面） */
+.gate-mailto-wrap{margin-top:18px;padding-top:18px;border-top:1px solid #ECEFF1;}
+.gate-mailto-btn{display:inline-flex;align-items:center;gap:6px;width:100%;justify-content:center;padding:13px;background:linear-gradient(135deg,#1565C0,#1E88E5);color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:800;text-decoration:none;box-shadow:0 4px 12px rgba(21,101,192,.3);}
+.gate-mailto-btn:active{transform:scale(.98);}
+.gate-mailto-note{font-size:10px;color:var(--sub);margin-top:8px;line-height:1.6;}
+.gate-manager-email{font-size:11px;color:var(--sub);margin-top:14px;line-height:1.6;}
 
 /* ボトムナビ */
 .bottomnav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);display:flex;z-index:20;box-shadow:0 -2px 10px rgba(0,0,0,.06);max-width:480px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom);}
@@ -274,8 +292,24 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       <input type="password" class="field" id="auth-password" placeholder="6文字以上" autocomplete="current-password">
     </div>
     <div id="auth-error" style="display:none;color:var(--bad);font-size:12px;font-weight:700;margin:2px 2px 0;line-height:1.5;"></div>
+    <span class="login-forgot" id="forgot-link" onclick="openResetModal()">パスワードを忘れた方はこちら</span>
     <button class="login-btn" id="auth-submit-btn" onclick="submitAuth()">ログイン</button>
     <div class="login-foot" id="login-foot">初めての方は上の「新規登録」から登録してください</div>
+  </div>
+</div>
+
+<!-- ═══ パスワード再設定モーダル ═══ -->
+<div id="reset-modal" class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-title">🔑 パスワード再設定</div>
+    <div class="modal-sub">登録したメールアドレスを入力してください。<br>再設定用のメールをお送りします。</div>
+    <div class="q">
+      <div class="login-field-label">メールアドレス</div>
+      <input type="email" class="field" id="reset-email" placeholder="you@example.com" autocomplete="username">
+    </div>
+    <div id="reset-msg" style="display:none;font-size:12px;font-weight:700;margin:6px 2px 0;line-height:1.6;"></div>
+    <button class="login-btn" id="reset-send-btn" onclick="sendResetEmail()">再設定メールを送る</button>
+    <button class="login-btn" style="background:#ECEFF1;color:var(--sub);box-shadow:none;margin-top:8px;" onclick="closeResetModal()">閉じる</button>
   </div>
 </div>
 
@@ -284,8 +318,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
   <div class="login-card" style="text-align:center;">
     <div class="gate-icon" id="gate-icon">⏳</div>
     <div class="login-title" id="gate-title">承認待ちです</div>
-    <div class="login-sub" style="margin-top:8px;margin-bottom:22px;line-height:1.8;" id="gate-desc">管理者の許可をお待ちください。<br>承認されると自動でご利用いただけます。</div>
-    <button class="login-btn" style="background:linear-gradient(135deg,#546E7A,#78909C);" onclick="logout()">🚪 ログアウト</button>
+    <div class="login-sub" style="margin-top:8px;margin-bottom:0;line-height:1.8;" id="gate-desc">管理者の許可をお待ちください。<br>承認されると自動でご利用いただけます。</div>
+    <div class="gate-mailto-wrap" id="gate-mailto-wrap" style="display:none">
+      <a class="gate-mailto-btn" id="gate-mailto-btn" href="#" target="_blank" rel="noopener">📧 管理者に承認を依頼する</a>
+      <div class="gate-mailto-note">※管理者が承認すると使えるようになります。メールアプリが開くので、そのまま送信してください。</div>
+      <div class="gate-manager-email">管理者の連絡先: <b id="gate-manager-email-val"></b></div>
+    </div>
+    <button class="login-btn" style="background:linear-gradient(135deg,#546E7A,#78909C);margin-top:22px;" onclick="logout()">🚪 ログアウト</button>
   </div>
 </div>
 
@@ -304,6 +343,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       <div class="header-name">🚛 今日もお疲れ様です</div>
     </div>
   </div>
+  <div class="pending-banner" id="pending-banner" onclick="go('team')">⚠️ 承認待ちが<span id="pending-banner-count">0</span>件あります　▸ タップで確認</div>
   <div class="home-body">
 
     <!-- 損益カード（主役） -->
@@ -807,6 +847,45 @@ function submitAuth(){
 }
 function logout(){ auth.signOut(); }
 
+/* ══════════════════════ パスワード再設定 ══════════════════════ */
+function openResetModal(){
+  document.getElementById('reset-email').value = document.getElementById('auth-email').value.trim();
+  var msg=document.getElementById('reset-msg'); msg.style.display='none';
+  document.getElementById('reset-modal').style.display='flex';
+}
+function closeResetModal(){
+  document.getElementById('reset-modal').style.display='none';
+}
+function sendResetEmail(){
+  var email=document.getElementById('reset-email').value.trim();
+  var msg=document.getElementById('reset-msg');
+  var btn=document.getElementById('reset-send-btn');
+  var successMsg='登録済みのアドレスであれば、再設定メールを送信しました。メール内のリンクから新しいパスワードを設定してください。';
+  if(!email){
+    msg.style.color='var(--bad)'; msg.textContent='メールアドレスを入力してください'; msg.style.display='block';
+    return;
+  }
+  btn.disabled=true;
+  auth.sendPasswordResetEmail(email).then(function(){
+    msg.style.color='var(--good)'; msg.textContent=successMsg; msg.style.display='block';
+  }).catch(function(err){
+    if(err.code==='auth/user-not-found'){
+      /* セキュリティ上「登録が無い」と断定しない。存在する場合と同じ文言で返す */
+      msg.style.color='var(--good)'; msg.textContent=successMsg; msg.style.display='block';
+      return;
+    }
+    if(err.code==='auth/invalid-email'){
+      msg.style.color='var(--bad)'; msg.textContent='メールアドレスの形式が正しくありません'; msg.style.display='block';
+    } else if(err.code==='auth/too-many-requests'){
+      msg.style.color='var(--bad)'; msg.textContent='試行回数が多すぎます。しばらくしてからお試しください'; msg.style.display='block';
+    } else if(err.code==='auth/network-request-failed'){
+      msg.style.color='var(--bad)'; msg.textContent='通信エラーです。ネット接続を確認してください'; msg.style.display='block';
+    } else {
+      msg.style.color='var(--bad)'; msg.textContent='送信に失敗しました。しばらくしてからお試しください'; msg.style.display='block';
+    }
+  }).finally(function(){ btn.disabled=false; });
+}
+
 auth.onAuthStateChanged(function(user){
   if(user){
     currentUser=user;
@@ -863,20 +942,40 @@ function finishInit(){
   if(isManager) updatePendingBadge();
 }
 
+/* 承認依頼メール(mailto)の宛先・件名・本文を組み立てる */
+function buildApprovalMailtoHref(){
+  var to = MANAGER_EMAILS[0] || '';
+  var name = (currentProfile && currentProfile.name) || '';
+  var email = (currentUser && currentUser.email) || (currentProfile && currentProfile.email) || '';
+  var when = new Date().toLocaleString('ja-JP');
+  var subject = '軽貨物まるごとアプリ 利用申請（承認のお願い）';
+  var body = '軽貨物まるごとアプリの利用申請です。\n\n'+
+    '氏名: '+name+'\n'+
+    '登録メール: '+email+'\n'+
+    '申請日時: '+when+'\n\n'+
+    '承認をお願いします。';
+  return 'mailto:'+to+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+}
+
 /* 承認待ち／利用不可のゲート画面を表示し、下部タブは隠して他画面に行けないようにする */
 function showGate(status){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
   document.getElementById('gate').classList.add('active');
   var nav=document.querySelector('.bottomnav'); if(nav) nav.style.display='none';
   var icon=document.getElementById('gate-icon'), title=document.getElementById('gate-title'), desc=document.getElementById('gate-desc');
+  var mailtoWrap=document.getElementById('gate-mailto-wrap');
   if(status==='rejected'){
     icon.textContent='🚫';
     title.textContent='利用が許可されていません';
     desc.innerHTML='管理者にご確認ください。';
+    mailtoWrap.style.display='none';
   } else {
     icon.textContent='⏳';
     title.textContent='承認待ちです';
     desc.innerHTML='管理者の許可をお待ちください。<br>承認されると自動でご利用いただけます。';
+    document.getElementById('gate-mailto-btn').href = buildApprovalMailtoHref();
+    document.getElementById('gate-manager-email-val').textContent = MANAGER_EMAILS[0] || '（未設定）';
+    mailtoWrap.style.display='block';
   }
 }
 
@@ -1445,9 +1544,19 @@ function updatePendingBadge(){
       if(profileStatus(p)==='pending') n++;
     });
     var badge=document.getElementById('team-badge');
-    if(!badge) return;
-    if(n>0){ badge.textContent='●'+n; badge.style.display='inline-block'; }
-    else { badge.style.display='none'; }
+    if(badge){
+      if(n>0){ badge.textContent='●'+n; badge.style.display='inline-block'; }
+      else { badge.style.display='none'; }
+    }
+    var banner=document.getElementById('pending-banner');
+    if(banner){
+      if(n>0){
+        document.getElementById('pending-banner-count').textContent=n;
+        banner.style.display='flex';
+      } else {
+        banner.style.display='none';
+      }
+    }
   });
 }
 
