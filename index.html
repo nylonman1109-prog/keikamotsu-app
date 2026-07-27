@@ -194,12 +194,10 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .li-amt.in{color:var(--income);} .li-amt.ex{color:var(--expense);}
 .empty{text-align:center;color:#B0BEC5;font-size:13px;padding:30px 0;}
 
-/* 個数入力 */
+/* 個数入力（直接入力） */
 .count-input-card{background:var(--card);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow);text-align:center;}
-.count-big{font-size:46px;font-weight:800;color:var(--money);margin:8px 0;}
-.count-stepper{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:10px;}
-.step-btn{width:44px;height:44px;border-radius:50%;border:none;background:var(--money-light);color:var(--money);font-size:22px;font-weight:800;cursor:pointer;}
-.step-btn:active{transform:scale(.92);}
+.count-big-input{width:100%;font-size:46px;font-weight:800;color:var(--money);margin:8px 0;text-align:center;border:2px solid var(--border);border-radius:14px;padding:8px;font-family:inherit;background:#FAFAFA;outline:none;-moz-appearance:textfield;}
+.count-big-input:focus{border-color:var(--money);background:white;}
 
 /* グラフSVG */
 .bar-chart-wrap{padding:6px 0 2px;}
@@ -214,9 +212,20 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .team-profit{font-size:14px;font-weight:800;}
 .team-profit.good{color:var(--good);} .team-profit.bad{color:var(--bad);}
 .badge-leader{font-size:9px;background:var(--gold);color:#fff;padding:2px 7px;border-radius:10px;font-weight:800;margin-left:6px;}
+.team-actions{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.team-btn{border:none;border-radius:8px;padding:8px 12px;font-size:11px;font-weight:800;cursor:pointer;color:#fff;white-space:nowrap;}
+.team-btn:active{transform:scale(.96);}
+.team-btn.approve{background:var(--good);}
+.team-btn.reject{background:var(--bad);}
+.team-btn.stop{background:var(--sub);}
+.team-btn-row{display:flex;gap:6px;}
+.team-count-badge{display:none;background:var(--gold);color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;margin-left:5px;vertical-align:1px;}
 
 /* ログイン */
 #login{background:linear-gradient(160deg,#1565C0,#1E88E5 55%,#0D47A1);justify-content:center;align-items:center;padding:24px;}
+/* 承認待ち／利用不可ゲート画面 */
+#gate{background:linear-gradient(160deg,#546E7A,#78909C 55%,#37474F);justify-content:center;align-items:center;padding:24px;}
+.gate-icon{font-size:44px;text-align:center;margin-bottom:8px;}
 .login-card{background:white;border-radius:20px;padding:32px 26px;width:100%;max-width:340px;box-shadow:0 12px 30px rgba(0,0,0,.25);}
 .login-logo{text-align:center;font-size:36px;margin-bottom:6px;}
 .login-title{text-align:center;font-size:18px;font-weight:800;margin-bottom:2px;}
@@ -270,13 +279,23 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
   </div>
 </div>
 
+<!-- ═══ 承認待ち／利用不可ゲート ═══ -->
+<div id="gate" class="screen">
+  <div class="login-card" style="text-align:center;">
+    <div class="gate-icon" id="gate-icon">⏳</div>
+    <div class="login-title" id="gate-title">承認待ちです</div>
+    <div class="login-sub" style="margin-top:8px;margin-bottom:22px;line-height:1.8;" id="gate-desc">管理者の許可をお待ちください。<br>承認されると自動でご利用いただけます。</div>
+    <button class="login-btn" style="background:linear-gradient(135deg,#546E7A,#78909C);" onclick="logout()">🚪 ログアウト</button>
+  </div>
+</div>
+
 <!-- ═══ ホーム ═══ -->
 <div id="home" class="screen">
   <div class="header">
     <div class="header-top">
       <div class="header-user"><span class="header-avatar" id="header-avatar">−</span><span id="header-username">ログイン中…</span></div>
       <div class="header-actions">
-        <button class="header-manage" id="btn-team" onclick="go('team')" style="display:none">👥 全員を見る</button>
+        <button class="header-manage" id="btn-team" onclick="go('team')" style="display:none">👥 全員を見る<span class="team-count-badge" id="team-badge"></span></button>
         <button class="header-manage" onclick="logout()">🚪</button>
       </div>
     </div>
@@ -390,12 +409,8 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
   <div class="form-body">
     <div class="count-input-card">
       <div class="q-label" style="color:var(--sub)" id="count-date">今日</div>
-      <div class="count-big" id="count-val">0</div>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" class="count-big-input" id="count-val" value="0" oninput="onCountInput()" onblur="onCountBlur()">
       <div style="font-size:12px;color:var(--sub)" id="count-remain">目標 100個 ・ あと100個</div>
-      <div class="count-stepper">
-        <button class="step-btn" onclick="stepCount(-1)">－</button>
-        <button class="step-btn" onclick="stepCount(1)">＋</button>
-      </div>
     </div>
     <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--money);" onclick="saveCount()">この個数を記録する</button>
     <div style="font-size:11px;color:var(--money);background:var(--money-light);border-radius:8px;padding:7px 10px;margin-top:10px;line-height:1.5;">🔗 この数はホームの達成率ゲージ・収入記録の個数欄に自動で反映されます</div>
@@ -547,7 +562,12 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 <div id="team" class="screen">
   <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>全員を見る</h1><div class="subheader-sub">まとめ役だけに表示</div></div></div>
   <div class="form-body">
-    <div class="note" style="margin-bottom:12px">👑 まとめ役はメンバー全員の損益・配達数を確認できます。各メンバーは自分のデータのみ閲覧可能です。</div>
+    <div class="note" style="margin-bottom:12px">👑 まとめ役は新規登録の承認・拒否と、メンバー全員の損益・配達数・利用状況を確認できます。各メンバーは自分のデータのみ閲覧可能です。</div>
+
+    <div class="section-label" style="margin-left:2px" id="pending-label">承認待ち 0件</div>
+    <div class="team-list" id="pending-list"><div class="empty">読み込み中…</div></div>
+
+    <div class="section-label" style="margin-left:2px;margin-top:18px;">承認済みメンバー</div>
     <div class="team-list" id="team-list"><div class="empty">読み込み中…</div></div>
   </div>
 </div>
@@ -589,6 +609,40 @@ const db = firebase.database();
    後からでも Firebaseコンソール → Realtime Database → users/該当uid/profile/role を
    "manager" に書き換えれば、まとめ役に変更できます。 */
 const MANAGER_EMAILS = ["nylonman1109@gmail.com"];
+
+/* ══════════════════════ EmailJS（承認依頼メールの差し込み口） ══════════════════════
+   新規登録（まとめ役以外）が発生したとき、まとめ役のGmailに「承認依頼が届きました」
+   メールを送るための設定。EmailJS(https://www.emailjs.com/) に無料登録し、
+   Public Key / Service ID / Template ID の3つを取得したら、下の3行に入れてください。
+   3つとも空のままなら何も送信されず、アプリは今まで通り正常に動作します。 */
+const EMAILJS_PUBLIC_KEY = "";   // 例: "AbCdEfGhIjKlMnOp"
+const EMAILJS_SERVICE_ID = "";   // 例: "service_xxxxxxx"
+const EMAILJS_TEMPLATE_ID = "";  // 例: "template_xxxxxxx"
+const EMAILJS_ENABLED = !!(EMAILJS_PUBLIC_KEY && EMAILJS_SERVICE_ID && EMAILJS_TEMPLATE_ID);
+
+if (EMAILJS_ENABLED) {
+  // 設定が入っているときだけCDNから読み込む（未設定時は通信自体発生しない＝安全）
+  var _emailjsScript = document.createElement('script');
+  _emailjsScript.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+  _emailjsScript.onload = function(){
+    try { emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); }
+    catch(e){ console.warn('EmailJS初期化に失敗しました', e); }
+  };
+  _emailjsScript.onerror = function(){
+    console.warn('EmailJS SDKの読み込みに失敗しました（承認依頼メールは送信されません。アプリ本体は正常です）');
+  };
+  document.head.appendChild(_emailjsScript);
+}
+/* 新規ドライバー登録時に、まとめ役へ承認依頼メールを送る（設定が無ければ何もしない） */
+function sendApprovalRequestEmail(profile){
+  if (!EMAILJS_ENABLED || typeof emailjs === 'undefined') return;
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    driver_name: profile.name || '',
+    driver_email: profile.email || '',
+    registered_at: new Date().toLocaleString('ja-JP'),
+    to_email: MANAGER_EMAILS[0] || ''
+  }).catch(function(err){ console.warn('承認依頼メールの送信に失敗しました', err); });
+}
 
 var CATS=['燃料費（ガソリン）','車両費・修繕費','保険料','通信費','消耗品費','接待交際費','租税公課','地代家賃','雑費'];
 
@@ -734,12 +788,15 @@ function submitAuth(){
   if(authMode==='register'){
     var name=document.getElementById('auth-name').value.trim() || 'ドライバー';
     auth.createUserWithEmailAndPassword(email, pw).then(function(cred){
-      var role = MANAGER_EMAILS.indexOf(email.toLowerCase())>=0 ? 'manager' : 'driver';
-      var profile = {name:name, role:role, targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
+      var isMgr = MANAGER_EMAILS.indexOf(email.toLowerCase())>=0;
+      var role = isMgr ? 'manager' : 'driver';
+      var status = isMgr ? 'approved' : 'pending'; // まとめ役は自動承認。それ以外は承認待ちからスタート
+      var profile = {name:name, role:role, status:status, email:email, targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
       return db.ref('users/'+cred.user.uid+'/profile').set(profile).then(function(){
         currentUser=cred.user;
         currentProfile=profile;
         finishInit();
+        if(!isMgr) sendApprovalRequestEmail(profile);
       });
     }).catch(function(err){ showAuthError(authErrMsg(err)); }).finally(function(){btn.disabled=false;});
   } else {
@@ -755,15 +812,29 @@ auth.onAuthStateChanged(function(user){
     currentUser=user;
     db.ref('users/'+user.uid+'/profile').once('value').then(function(snap){
       var p=snap.val();
-      if(p){ currentProfile=p; finishInit(); return; }
+      if(p){
+        currentProfile=p;
+        /* 承認制を追加する前に作られた古いプロフィール（emailフィールドが無い）を、
+           ここで一度だけ補完しておく。status/roleは書き換えない(ルール上も本人不可)ので安全。 */
+        if(!p.email && user.email){
+          db.ref('users/'+user.uid+'/profile/email').set(user.email);
+          currentProfile.email = user.email;
+        }
+        db.ref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
+        finishInit();
+        return;
+      }
       /* プロフィールが無い場合（登録直後の書き込み待ち、または何らかの理由で
          プロフィール作成に失敗したアカウント）は、ここで最低限のプロフィールを
          自動作成してログイン不能状態を防ぐ。登録フロー側の finishInit と
          二重に走っても最終的な内容は同じなので問題ない。 */
       var role = MANAGER_EMAILS.indexOf((user.email||'').toLowerCase())>=0 ? 'manager' : 'driver';
-      var fallbackProfile = {name:(user.email||'ドライバー').split('@')[0], role:role, targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
+      var status = role==='manager' ? 'approved' : 'pending';
+      var fallbackProfile = {name:(user.email||'ドライバー').split('@')[0], role:role, status:status, email:user.email||'', targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
       db.ref('users/'+user.uid+'/profile').set(fallbackProfile).then(function(){
-        currentProfile=fallbackProfile; finishInit();
+        currentProfile=fallbackProfile;
+        db.ref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
+        finishInit();
       });
     });
   } else {
@@ -774,11 +845,39 @@ auth.onAuthStateChanged(function(user){
 
 function finishInit(){
   isManager = currentProfile.role==='manager';
+  /* 承認制を追加する前に作られたプロフィールにはstatusが無い。
+     まとめ役は常にapproved扱い、それ以外は未承認(pending)扱いにする安全側のフォールバック。 */
+  var status = currentProfile.status || (isManager ? 'approved' : 'pending');
+  currentProfile.status = status;
   goalTarget = currentProfile.targetCount || 100;
   document.getElementById('header-username').textContent = 'ログイン中: '+(currentProfile.name||currentUser.email)+'さん';
   document.getElementById('header-avatar').textContent = (currentProfile.name||'ド').charAt(0);
   document.getElementById('btn-team').style.display = isManager ? 'flex' : 'none';
+
+  if(!isManager && status!=='approved'){
+    showGate(status);
+    return;
+  }
+  var nav=document.querySelector('.bottomnav'); if(nav) nav.style.display='flex';
   go('home');
+  if(isManager) updatePendingBadge();
+}
+
+/* 承認待ち／利用不可のゲート画面を表示し、下部タブは隠して他画面に行けないようにする */
+function showGate(status){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('gate').classList.add('active');
+  var nav=document.querySelector('.bottomnav'); if(nav) nav.style.display='none';
+  var icon=document.getElementById('gate-icon'), title=document.getElementById('gate-title'), desc=document.getElementById('gate-desc');
+  if(status==='rejected'){
+    icon.textContent='🚫';
+    title.textContent='利用が許可されていません';
+    desc.innerHTML='管理者にご確認ください。';
+  } else {
+    icon.textContent='⏳';
+    title.textContent='承認待ちです';
+    desc.innerHTML='管理者の許可をお待ちください。<br>承認されると自動でご利用いただけます。';
+  }
 }
 
 /* ══════════════════════ ホーム ══════════════════════ */
@@ -802,9 +901,11 @@ function refreshHome(){
   });
 
   loadChart();
+  if(isManager) updatePendingBadge();
 }
-function syncCountViews(){
-  var cv=document.getElementById('count-val'); if(cv) cv.textContent=countVal;
+/* skipSelf=trueのときは「個数」画面の入力欄自体は書き換えない（入力中にカーソルが飛ぶのを防ぐ） */
+function syncCountViews(skipSelf){
+  var cv=document.getElementById('count-val'); if(cv && !skipSelf) cv.value=countVal;
   var remain=document.getElementById('count-remain');
   if(remain){
     var left=Math.max(0, goalTarget-countVal);
@@ -820,8 +921,12 @@ function syncCountViews(){
   }
   var gp=document.getElementById('goal-pct'); if(gp) gp.textContent='達成率 '+pct+'%';
 }
-function stepCount(d){
-  countVal=Math.max(0,countVal+d);
+/* 個数を直接入力（キーボードでその場で数字を打ち込む） */
+function onCountInput(){
+  countVal = num(val('count-val'));
+  syncCountViews(true);
+}
+function onCountBlur(){
   syncCountViews();
 }
 
@@ -1236,11 +1341,27 @@ function loadReport(){
   });
 }
 
-/* ══════════════════════ まとめ役ビュー ══════════════════════ */
+/* ══════════════════════ まとめ役ビュー（承認待ち＋承認済み一覧） ══════════════════════ */
+function fmtDateTime(ts){
+  if(!ts) return '記録なし';
+  var d=new Date(ts);
+  var pad=function(n){return String(n).padStart(2,'0');};
+  return (d.getMonth()+1)+'/'+d.getDate()+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+}
+/* 古いプロフィール(statusが無い)にも対応した判定 */
+function profileStatus(p){
+  return p.status || (p.role==='manager' ? 'approved' : 'pending');
+}
 function loadTeam(){
-  var listEl=document.getElementById('team-list');
-  if(!isManager){ listEl.innerHTML='<div class="empty">閲覧権限がありません</div>'; return; }
-  listEl.innerHTML='<div class="empty">読み込み中…</div>';
+  var pendingEl=document.getElementById('pending-list');
+  var teamEl=document.getElementById('team-list');
+  if(!isManager){
+    pendingEl.innerHTML='<div class="empty">閲覧権限がありません</div>';
+    teamEl.innerHTML='';
+    return;
+  }
+  pendingEl.innerHTML='<div class="empty">読み込み中…</div>';
+  teamEl.innerHTML='<div class="empty">読み込み中…</div>';
   var ym=monthKey(todayKey());
   db.ref('users').once('value').then(function(snap){
     var uids=[]; snap.forEach(function(c){uids.push(c.key);});
@@ -1252,23 +1373,81 @@ function loadTeam(){
       ]).then(function(r){
         var profile=r[0].val()||{}; var today=r[1].val()||{count:0}; var stats=r[2];
         return {
-          name:profile.name||'名称未設定', role:profile.role||'driver',
+          uid:uid, name:profile.name||'名称未設定', role:profile.role||'driver',
+          status:profileStatus(profile), email:profile.email||'',
+          createdAt:profile.createdAt||0, lastLoginAt:profile.lastLoginAt||0,
           target:profile.targetCount||100, todayCount:today.count||0,
           profit:stats.sales-stats.expenseTotal
         };
       });
     }));
   }).then(function(rows){
-    rows.sort(function(a,b){ return (a.role==='manager'?0:1)-(b.role==='manager'?0:1); });
-    if(!rows.length){ listEl.innerHTML='<div class="empty">メンバーがいません</div>'; return; }
-    listEl.innerHTML = rows.map(function(r){
+    var pending=rows.filter(function(r){return r.status==='pending';});
+    var approved=rows.filter(function(r){return r.status==='approved';});
+    approved.sort(function(a,b){ return (a.role==='manager'?0:1)-(b.role==='manager'?0:1); });
+
+    document.getElementById('pending-label').textContent='承認待ち '+pending.length+'件';
+    if(!pending.length){
+      pendingEl.innerHTML='<div class="empty">承認待ちはいません</div>';
+    } else {
+      pendingEl.innerHTML = pending.map(function(r){
+        return '<div class="team-item"><div class="team-avatar">'+esc((r.name||'ド').charAt(0))+'</div>'+
+          '<div class="team-info"><div class="team-name">'+esc(r.name)+'</div>'+
+          '<div class="team-sub">'+esc(r.email||'（メール未登録）')+'</div>'+
+          '<div class="team-sub">登録: '+fmtDateTime(r.createdAt)+'</div></div>'+
+          '<div class="team-btn-row">'+
+            '<button class="team-btn approve" onclick="approveUser(\''+r.uid+'\')">承認</button>'+
+            '<button class="team-btn reject" onclick="rejectUser(\''+r.uid+'\')">拒否</button>'+
+          '</div></div>';
+      }).join('');
+    }
+
+    if(!approved.length){ teamEl.innerHTML='<div class="empty">承認済みメンバーがいません</div>'; return; }
+    teamEl.innerHTML = approved.map(function(r){
       var badge = r.role==='manager' ? '<span class="badge-leader">まとめ役</span>' : '';
       var cls = r.profit>=0?'good':'bad';
+      var stopBtn = r.role==='manager' ? '' : '<button class="team-btn stop" onclick="suspendUser(\''+r.uid+'\')">利用停止</button>';
       return '<div class="team-item"><div class="team-avatar">'+esc((r.name||'ド').charAt(0))+'</div>'+
         '<div class="team-info"><div class="team-name">'+esc(r.name)+badge+'</div>'+
-        '<div class="team-sub">今日 '+r.todayCount+'/'+r.target+'個 ・ '+Number(ym.slice(5,7))+'月</div></div>'+
-        '<div class="team-profit '+cls+'">'+yenSigned(r.profit)+'</div></div>';
+        '<div class="team-sub">今日 '+r.todayCount+'/'+r.target+'個 ・ '+Number(ym.slice(5,7))+'月</div>'+
+        '<div class="team-sub">'+esc(r.email||'（メール未登録）')+'</div>'+
+        '<div class="team-sub">最終ログイン: '+fmtDateTime(r.lastLoginAt)+'</div></div>'+
+        '<div class="team-actions"><div class="team-profit '+cls+'">'+yenSigned(r.profit)+'</div>'+stopBtn+'</div></div>';
     }).join('');
+  });
+}
+function approveUser(uid){
+  db.ref('users/'+uid+'/profile/status').set('approved').then(function(){
+    toast('✅ 承認しました');
+    loadTeam(); updatePendingBadge();
+  }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
+}
+function rejectUser(uid){
+  db.ref('users/'+uid+'/profile/status').set('rejected').then(function(){
+    toast('🚫 拒否しました');
+    loadTeam(); updatePendingBadge();
+  }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
+}
+function suspendUser(uid){
+  if(!confirm('このメンバーを利用停止にしますか？（再度使うには承認待ち一覧から承認し直します）')) return;
+  db.ref('users/'+uid+'/profile/status').set('rejected').then(function(){
+    toast('⛔ 利用停止にしました');
+    loadTeam(); updatePendingBadge();
+  }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
+}
+/* ヘッダーの「👥全員を見る」に承認待ち件数バッジを出す */
+function updatePendingBadge(){
+  if(!isManager) return;
+  db.ref('users').once('value').then(function(snap){
+    var n=0;
+    snap.forEach(function(c){
+      var p=(c.val()||{}).profile||{};
+      if(profileStatus(p)==='pending') n++;
+    });
+    var badge=document.getElementById('team-badge');
+    if(!badge) return;
+    if(n>0){ badge.textContent='●'+n; badge.style.display='inline-block'; }
+    else { badge.style.display='none'; }
   });
 }
 
