@@ -5,7 +5,7 @@
 //       → 古いデータが表示される事故を防ぐため。
 
 // バージョンを上げると古いキャッシュが自動で破棄される(下のactivate参照)。
-var CACHE_VERSION = 'keikamotsu-shell-v3';
+var CACHE_VERSION = 'keikamotsu-shell-v4';
 
 // self.location基準の相対パス解決。GitHub Pagesのサブパス(/keikamotsu-app/)配下でも
 // ローカル直下でも、そのままの相対位置を指すようにする。
