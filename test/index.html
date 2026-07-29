@@ -30,7 +30,10 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .screen.active{display:flex;}
 
 /* ── ヘッダー ── */
-.header{color:white;padding:14px 16px 40px;position:relative;}
+/* 下に続く要素を16px引き上げてヘッダーの色面に重ねる。
+   引き上げを「ヘッダー側」に持たせることで、間に承認待ちバナーが入っても
+   バナーが食われず、バナーの有無どちらでも正しく重なる。 */
+.header{color:white;padding:14px 16px 40px;position:relative;margin-bottom:-16px;}
 .header-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .header-user{display:flex;align-items:center;gap:8px;font-size:12px;background:rgba(255,255,255,.18);padding:5px 10px 5px 6px;border-radius:20px;min-width:0;}
 .header-avatar{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
@@ -42,7 +45,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
 /* ── ホーム背景（グラデ＋波） ── */
 #home{background:linear-gradient(155deg,#1565C0 0%,#1E88E5 38%,var(--bg) 38%);}
-.home-body{padding:0 14px 24px;flex:1;margin-top:-16px;}
+.home-body{padding:0 14px 24px;flex:1;}
 
 /* 損益カード（主役） */
 .profit-card{background:var(--card);border-radius:18px;padding:18px 18px 16px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,.12);}
