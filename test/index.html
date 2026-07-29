@@ -3,20 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>軽貨物まるごとアプリ 強化版</title>
+<title>【テスト版】軽貨物まるごとアプリ</title>
 
-<!-- PWA: ホーム画面に追加してアプリのように起動するための設定 -->
-<link rel="manifest" href="./manifest.json">
-<meta name="theme-color" content="#1565C0">
-
-<!-- iOS向け(Safariはmanifestのアイコンやテーマカラーを見ないため個別指定) -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="軽貨物まるごと">
-<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
-
-<!-- 通常のファビコン代わり -->
-<link rel="icon" href="./icons/icon-192.png" type="image/png">
+<!-- テスト版はホーム画面追加を想定しないため manifest/PWA設定は無し。
+     アイコンは本番と共用(親フォルダ)を参照。ブラウザのタブ色も紫にして本番と見分ける。 -->
+<meta name="theme-color" content="#6A1B9A">
+<link rel="icon" href="../icons/icon-192.png" type="image/png">
 <style>
 :root{
   --bg:#F0F4F8; --card:#FFFFFF; --text:#1A1A2E; --sub:#546E7A;
@@ -142,13 +134,26 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .q-label{font-size:13px;font-weight:600;margin-bottom:7px;}
 .field{width:100%;padding:11px 12px;border:2px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;background:#FAFAFA;color:var(--text);outline:none;}
 .field:focus{border-color:var(--money);background:white;}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+/* 2列レイアウト。狭い画面では自動で1列に折り返す（日時欄が縮まず重なるのを防ぐ） */
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 8px;}
+.row2>*{min-width:0;}          /* グリッド内で中身がはみ出さないための保険 */
+.row2 .field{min-width:0;}
+/* 日時を含む行は必要幅が大きいので、折り返しのしきい値を広くとる */
+.row2.row2-dt{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+.row2 .q-label{min-height:1.2em;}
 
 /* 点呼・業務簿フォームのチップ選択（有/無・点呼方法などの選択欄） */
 .chip-row{display:flex;gap:6px;flex-wrap:wrap;}
 .chip{padding:8px 14px;border:2px solid var(--border);border-radius:20px;font-size:12px;font-weight:700;color:var(--sub);background:#FAFAFA;cursor:pointer;}
 .chip.active{border-color:var(--money);background:var(--money-light);color:var(--money);}
 .calc-box{background:var(--money-light);border:2px solid var(--money);border-radius:10px;padding:12px 14px;font-size:17px;font-weight:800;color:var(--money);text-align:center;}
+
+/* 単位つき入力（mg/L・km など）。入力欄が縮んで単位と重ならないようにする */
+.unit-row{display:flex;align-items:center;gap:8px;}
+.unit-row .field{min-width:0;flex:1;}
+.unit-label{font-size:13px;color:var(--sub);white-space:nowrap;}
+.quick-btn{padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:#FAFAFA;color:var(--sub);font-size:13px;font-weight:700;font-family:inherit;white-space:nowrap;cursor:pointer;}
+.quick-btn:active{background:var(--money-light);border-color:var(--money);color:var(--money);}
 
 /* カメラボタン */
 .camera-btn{width:100%;border:none;border-radius:16px;padding:22px 14px;background:linear-gradient(135deg,#AD1457,#D81B60);color:white;font-size:16px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 6px 16px rgba(173,20,87,.35);margin-bottom:8px;}
@@ -494,7 +499,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
     <div class="subpanel active" id="sub-tenko">
       <div class="section">
         <div class="section-title">🌅 乗務前点呼</div>
-        <div class="q"><div class="row2">
+        <div class="q"><div class="row2 row2-dt">
           <div><div class="q-label">実施日時</div><input type="datetime-local" class="field" id="tenko-pre-datetime"></div>
           <div><div class="q-label">点呼執行者</div><input type="text" class="field" id="tenko-pre-executor"></div>
         </div></div>
@@ -504,6 +509,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
         <div class="q"><div class="q-label">アルコール検知器使用の有無</div><div class="chip-row" id="tenko-pre-alcohol">
           <span class="chip active" onclick="toggleChip(this)">有</span><span class="chip" onclick="toggleChip(this)">無</span>
         </div></div>
+        <div class="q"><div class="q-label">検知器の測定数値</div>
+          <div class="unit-row">
+            <input type="text" inputmode="decimal" class="field" id="tenko-pre-alcohol-value" placeholder="例）0.00">
+            <span class="unit-label">mg/L</span>
+            <button type="button" class="quick-btn" onclick="setAlcoholValue('tenko-pre-alcohol-value','0.00')">0.00</button>
+          </div>
+        </div>
         <div class="q"><div class="q-label">酒気帯びの有無</div><div class="chip-row" id="tenko-pre-drink">
           <span class="chip active" onclick="toggleChip(this)">無</span><span class="chip" onclick="toggleChip(this)">有</span>
         </div></div>
@@ -516,7 +528,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
       <div class="section">
         <div class="section-title">🌙 乗務後点呼</div>
-        <div class="q"><div class="row2">
+        <div class="q"><div class="row2 row2-dt">
           <div><div class="q-label">実施日時</div><input type="datetime-local" class="field" id="tenko-post-datetime"></div>
           <div><div class="q-label">点呼執行者</div><input type="text" class="field" id="tenko-post-executor"></div>
         </div></div>
@@ -526,6 +538,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
         <div class="q"><div class="q-label">アルコール検知器使用の有無</div><div class="chip-row" id="tenko-post-alcohol">
           <span class="chip active" onclick="toggleChip(this)">有</span><span class="chip" onclick="toggleChip(this)">無</span>
         </div></div>
+        <div class="q"><div class="q-label">検知器の測定数値</div>
+          <div class="unit-row">
+            <input type="text" inputmode="decimal" class="field" id="tenko-post-alcohol-value" placeholder="例）0.00">
+            <span class="unit-label">mg/L</span>
+            <button type="button" class="quick-btn" onclick="setAlcoholValue('tenko-post-alcohol-value','0.00')">0.00</button>
+          </div>
+        </div>
         <div class="q"><div class="q-label">酒気帯びの有無</div><div class="chip-row" id="tenko-post-drink">
           <span class="chip active" onclick="toggleChip(this)">無</span><span class="chip" onclick="toggleChip(this)">有</span>
         </div></div>
@@ -545,17 +564,17 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
           <div><div class="q-label">車両番号</div><input type="text" class="field" id="gyomu-vehicle" placeholder="例）八戸り3222"></div>
         </div></div>
         <div class="q"><div class="q-label">出発地</div><input type="text" class="field" id="gyomu-start-place" placeholder="例）おいらせ町営業所"></div>
-        <div class="q"><div class="row2">
+        <div class="q"><div class="row2 row2-dt">
           <div><div class="q-label">出発日時</div><input type="datetime-local" class="field" id="gyomu-start-datetime"></div>
-          <div><div class="q-label">出発時の走行距離計</div><div style="display:flex;align-items:center;gap:8px;"><input type="text" inputmode="numeric" class="field" id="gyomu-start-odo" oninput="calcGyomuDistance()"><span style="font-size:13px;color:var(--sub);white-space:nowrap;">km</span></div></div>
+          <div><div class="q-label">出発時の走行距離計</div><div class="unit-row"><input type="text" inputmode="numeric" class="field" id="gyomu-start-odo" oninput="calcGyomuDistance()"><span class="unit-label">km</span></div></div>
         </div></div>
       </div>
       <div class="section">
         <div class="section-title">🏁 業務終了</div>
         <div class="q"><div class="q-label">到着地</div><input type="text" class="field" id="gyomu-end-place" placeholder="例）おいらせ町営業所"></div>
-        <div class="q"><div class="row2">
+        <div class="q"><div class="row2 row2-dt">
           <div><div class="q-label">到着日時</div><input type="datetime-local" class="field" id="gyomu-end-datetime"></div>
-          <div><div class="q-label">到着時の走行距離計</div><div style="display:flex;align-items:center;gap:8px;"><input type="text" inputmode="numeric" class="field" id="gyomu-end-odo" oninput="calcGyomuDistance()"><span style="font-size:13px;color:var(--sub);white-space:nowrap;">km</span></div></div>
+          <div><div class="q-label">到着時の走行距離計</div><div class="unit-row"><input type="text" inputmode="numeric" class="field" id="gyomu-end-odo" oninput="calcGyomuDistance()"><span class="unit-label">km</span></div></div>
         </div></div>
         <div class="q"><div class="q-label">走行距離（自動計算・参考表示）</div><div class="calc-box" id="gyomu-distance">0 km</div></div>
         <div class="q"><div class="q-label">集荷・配達場所など（主な経過地点）</div><textarea class="field" rows="3" style="resize:none;" id="gyomu-route" placeholder="例）八戸市○○倉庫 → 青森市○○工場"></textarea></div>
@@ -671,7 +690,7 @@ const db = firebase.database();
      ③Service Workerを登録しない（キャッシュで古い実験版が残るのを防ぐ）
      ④新規登録時の承認依頼メールを送らない（本番の管理者宛に紛れて届かないように）
    DBへの読み書きは必ず dref(path) を経由すること（db.ref を直接書かない）。 */
-const IS_STAGING = false;
+const IS_STAGING = true;
 const DB_ROOT = IS_STAGING ? 'staging' : '';
 function dref(path){ return db.ref(DB_ROOT ? (DB_ROOT + '/' + path) : path); }
 
@@ -1350,6 +1369,7 @@ function loadTenko(){
       document.getElementById('tenko-pre-executor').value=v.pre.executor||'';
       setChipValue('tenko-pre-method', v.pre.method);
       setChipValue('tenko-pre-alcohol', v.pre.alcoholCheck);
+      document.getElementById('tenko-pre-alcohol-value').value=v.pre.alcoholValue||'';
       setChipValue('tenko-pre-drink', v.pre.drinking);
       document.getElementById('tenko-pre-condition').value=v.pre.condition||'';
       setChipValue('tenko-pre-inspection', v.pre.inspection);
@@ -1358,6 +1378,7 @@ function loadTenko(){
       document.getElementById('tenko-post-executor').value=v.post.executor||'';
       setChipValue('tenko-post-method', v.post.method);
       setChipValue('tenko-post-alcohol', v.post.alcoholCheck);
+      document.getElementById('tenko-post-alcohol-value').value=v.post.alcoholValue||'';
       setChipValue('tenko-post-drink', v.post.drinking);
       document.getElementById('tenko-post-condition').value=v.post.roadCondition||'';
       document.getElementById('tenko-post-handover').value=v.post.handover||'';
@@ -1365,22 +1386,30 @@ function loadTenko(){
     } else {
       document.getElementById('tenko-pre-datetime').value=nowLocalInput();
       document.getElementById('tenko-pre-executor').value=(currentProfile&&currentProfile.name)||'';
+      document.getElementById('tenko-pre-alcohol-value').value='';
       document.getElementById('tenko-post-datetime').value='';
       document.getElementById('tenko-post-executor').value=(currentProfile&&currentProfile.name)||'';
+      document.getElementById('tenko-post-alcohol-value').value='';
     }
   });
+}
+/* アルコール検知器の測定数値のクイック入力（毎日ほぼ 0.00 なので1タップで入れられるように） */
+function setAlcoholValue(id, v){
+  document.getElementById(id).value = v;
 }
 function saveTenko(){
   var data={
     pre:{
       datetime:val('tenko-pre-datetime'), executor:val('tenko-pre-executor'),
       method:getChipValue('tenko-pre-method'), alcoholCheck:getChipValue('tenko-pre-alcohol'),
+      alcoholValue:val('tenko-pre-alcohol-value'),
       drinking:getChipValue('tenko-pre-drink'), condition:val('tenko-pre-condition'),
       inspection:getChipValue('tenko-pre-inspection'), note:val('tenko-pre-note')
     },
     post:{
       datetime:val('tenko-post-datetime'), executor:val('tenko-post-executor'),
       method:getChipValue('tenko-post-method'), alcoholCheck:getChipValue('tenko-post-alcohol'),
+      alcoholValue:val('tenko-post-alcohol-value'),
       drinking:getChipValue('tenko-post-drink'), roadCondition:val('tenko-post-condition'),
       handover:val('tenko-post-handover'), note:val('tenko-post-note')
     },

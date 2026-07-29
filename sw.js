@@ -5,7 +5,8 @@
 //       → 古いデータが表示される事故を防ぐため。
 
 // バージョンを上げると古いキャッシュが自動で破棄される(下のactivate参照)。
-var CACHE_VERSION = 'keikamotsu-shell-v4';
+// ★本番にリリースするたびに、この番号を必ず上げること(上げ忘れると同僚のスマホに更新が配られない)。
+var CACHE_VERSION = 'keikamotsu-shell-v5';
 
 // self.location基準の相対パス解決。GitHub Pagesのサブパス(/keikamotsu-app/)配下でも
 // ローカル直下でも、そのままの相対位置を指すようにする。
@@ -19,13 +20,22 @@ var SHELL_URLS = [
 ].map(function (p) { return new URL(p, self.location).href; });
 
 self.addEventListener('install', function (event) {
+  // ここで自動skipWaitingはしない。新しいSWは一旦「waiting(待機中)」で止め、
+  // 画面側の「新しいバージョンがあります」帯をユーザーがタップしたときだけ
+  // 有効化する(入力中のデータを消さないため)。
   event.waitUntil(
     caches.open(CACHE_VERSION).then(function (cache) {
       return cache.addAll(SHELL_URLS);
-    }).then(function () {
-      return self.skipWaiting();
     })
   );
+});
+
+// 画面側(index.html)から「更新するボタンが押された」メッセージを受け取ったら、
+// 待機中のこのSWを有効化する。
+self.addEventListener('message', function (event) {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', function (event) {
