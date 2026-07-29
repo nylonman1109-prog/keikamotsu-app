@@ -226,6 +226,27 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .team-btn-row{display:flex;gap:6px;}
 .team-count-badge{display:none;background:var(--gold);color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;margin-left:5px;vertical-align:1px;}
 
+/* 記入漏れチェック */
+.fc-datebar{display:flex;align-items:center;gap:8px;margin:4px 2px 10px;}
+.fc-datebar input{width:auto;flex:none;padding:9px 10px;font-size:13px;}
+.fc-datebar .fc-today-btn{border:2px solid var(--border);background:#fff;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;color:var(--sub);cursor:pointer;}
+.fc-datebar .fc-today-btn:active{background:var(--money-light);color:var(--money);border-color:var(--money);}
+.fc-item{background:var(--card);border-radius:12px;padding:11px 14px;margin-bottom:8px;box-shadow:var(--shadow);border-left:5px solid var(--border);}
+.fc-item.fc-ok{border-left-color:var(--good);}
+.fc-item.fc-ng{border-left-color:var(--bad);}
+.fc-name{font-size:14px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+.fc-name .fc-status{font-size:10px;font-weight:800;padding:2px 8px;border-radius:8px;}
+.fc-name .fc-status.ok{background:var(--good-light);color:var(--good);}
+.fc-name .fc-status.ng{background:var(--bad-light);color:var(--bad);}
+.fc-pills{display:flex;flex-wrap:wrap;gap:6px;}
+.fc-pill{font-size:11px;font-weight:800;padding:4px 10px;border-radius:8px;}
+.fc-pill.ok{background:var(--good-light);color:var(--good);}
+.fc-pill.ng{background:var(--bad-light);color:var(--bad);}
+.fc-month-item{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);}
+.fc-month-name{font-size:14px;font-weight:700;margin-bottom:6px;}
+.fc-month-row{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);padding:3px 0;}
+.fc-month-row b{color:var(--money);font-size:13px;}
+
 /* ログイン */
 #login{background:linear-gradient(160deg,#1565C0,#1E88E5 55%,#0D47A1);justify-content:center;align-items:center;padding:24px;}
 /* 承認待ち／利用不可ゲート画面 */
@@ -497,6 +518,15 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
     <!-- ── 点呼簿 ── -->
     <div class="subpanel active" id="sub-tenko">
+      <!-- 運転者名・車両番号は点呼記録簿の法定記載事項。提出様式にも列があるため点呼簿にも持たせる -->
+      <div class="section">
+        <div class="section-title">🚚 この日の運転者・車両</div>
+        <div class="q"><div class="row2">
+          <div><div class="q-label">運転者名</div><input type="text" class="field" id="tenko-driver"></div>
+          <div><div class="q-label">車両番号</div><input type="text" class="field" id="tenko-vehicle" placeholder="例）八戸り3222"></div>
+        </div></div>
+      </div>
+
       <div class="section">
         <div class="section-title">🌅 乗務前点呼</div>
         <div class="q"><div class="row2 row2-dt">
@@ -645,6 +675,20 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
     <div class="section-label" style="margin-left:2px" id="pending-label">承認待ち 0件</div>
     <div class="team-list" id="pending-list"><div class="empty">読み込み中…</div></div>
 
+    <div class="section-label" style="margin-left:2px;margin-top:18px;">📋 今日の記入状況</div>
+    <div class="fc-datebar">
+      <input type="date" class="field" id="fc-date" onchange="loadFillCheckDaily()">
+      <button type="button" class="fc-today-btn" onclick="setFcDateToday()">今日</button>
+    </div>
+    <div class="team-list" id="fillcheck-list"><div class="empty">読み込み中…</div></div>
+
+    <div class="section-label" style="margin-left:2px;margin-top:18px;">🗓️ 月の記入率</div>
+    <div class="fc-datebar">
+      <input type="month" class="field" id="fc-month" onchange="loadFillCheckMonthly()">
+    </div>
+    <div class="note" style="margin:0 2px 10px;">「◯日中」の分母は<b>その月にその人が何かしら記録した日数（稼働日数）</b>＝点呼・業務簿・車両点検のいずれかを保存した日です。休みの日はカウントしません。点呼は乗務前・乗務後の<b>両方</b>が入っている日を「記入済み」としています。</div>
+    <div class="team-list" id="fillcheck-monthly-list"><div class="empty">読み込み中…</div></div>
+
     <div class="section-label" style="margin-left:2px;margin-top:18px;">承認済みメンバー</div>
     <div class="team-list" id="team-list"><div class="empty">読み込み中…</div></div>
   </div>
@@ -791,7 +835,7 @@ function go(id){
   else if(id==='count') loadCountScreen();
   else if(id==='drive') loadDriveToday();
   else if(id==='report') loadReport();
-  else if(id==='team') loadTeam();
+  else if(id==='team'){ loadTeam(); loadFillCheckDaily(); loadFillCheckMonthly(); }
 }
 function showSub(id){
   document.querySelectorAll('.subtab-btn').forEach(function(b){b.classList.remove('active');});
@@ -1364,7 +1408,11 @@ function loadDriveToday(){
 function loadTenko(){
   dref('users/'+currentUser.uid+'/tenko/'+todayKey()).once('value').then(function(snap){
     var v=snap.val();
+    var defName=(currentProfile&&currentProfile.name)||'';
+    var defVehicle=(currentProfile&&currentProfile.vehicle)||'';
     if(v){
+      document.getElementById('tenko-driver').value=v.driver||defName;
+      document.getElementById('tenko-vehicle').value=v.vehicle||defVehicle;
       document.getElementById('tenko-pre-datetime').value=v.pre.datetime||'';
       document.getElementById('tenko-pre-executor').value=v.pre.executor||'';
       setChipValue('tenko-pre-method', v.pre.method);
@@ -1384,6 +1432,8 @@ function loadTenko(){
       document.getElementById('tenko-post-handover').value=v.post.handover||'';
       document.getElementById('tenko-post-note').value=v.post.note||'';
     } else {
+      document.getElementById('tenko-driver').value=defName;
+      document.getElementById('tenko-vehicle').value=defVehicle;
       document.getElementById('tenko-pre-datetime').value=nowLocalInput();
       document.getElementById('tenko-pre-executor').value=(currentProfile&&currentProfile.name)||'';
       document.getElementById('tenko-pre-alcohol-value').value='';
@@ -1397,8 +1447,16 @@ function loadTenko(){
 function setAlcoholValue(id, v){
   document.getElementById(id).value = v;
 }
+/* 車両番号は毎日同じなので、一度入れたらプロフィールに覚えさせて翌日から自動で入るようにする */
+function rememberVehicle(v){
+  if(!v || !currentUser) return;
+  if(currentProfile && currentProfile.vehicle===v) return;
+  if(currentProfile) currentProfile.vehicle=v;
+  dref('users/'+currentUser.uid+'/profile/vehicle').set(v);
+}
 function saveTenko(){
   var data={
+    driver:val('tenko-driver'), vehicle:val('tenko-vehicle'),
     pre:{
       datetime:val('tenko-pre-datetime'), executor:val('tenko-pre-executor'),
       method:getChipValue('tenko-pre-method'), alcoholCheck:getChipValue('tenko-pre-alcohol'),
@@ -1415,6 +1473,7 @@ function saveTenko(){
     },
     updatedAt: firebase.database.ServerValue.TIMESTAMP
   };
+  rememberVehicle(data.vehicle);
   dref('users/'+currentUser.uid+'/tenko/'+todayKey()).set(data)
     .then(function(){ toast('✅ 点呼を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
@@ -1430,8 +1489,8 @@ function loadGyomu(){
   dref('users/'+currentUser.uid+'/gyomu/'+todayKey()).once('value').then(function(snap){
     var v=snap.val();
     if(v){
-      document.getElementById('gyomu-driver').value=v.driver||'';
-      document.getElementById('gyomu-vehicle').value=v.vehicle||'';
+      document.getElementById('gyomu-driver').value=v.driver||(currentProfile&&currentProfile.name)||'';
+      document.getElementById('gyomu-vehicle').value=v.vehicle||(currentProfile&&currentProfile.vehicle)||'';
       document.getElementById('gyomu-start-place').value=v.startPlace||'';
       document.getElementById('gyomu-start-datetime').value=v.startDatetime||'';
       document.getElementById('gyomu-start-odo').value=v.startOdo||'';
@@ -1441,7 +1500,7 @@ function loadGyomu(){
       document.getElementById('gyomu-route').value=v.route||'';
     } else {
       document.getElementById('gyomu-driver').value=(currentProfile&&currentProfile.name)||'';
-      document.getElementById('gyomu-vehicle').value='';
+      document.getElementById('gyomu-vehicle').value=(currentProfile&&currentProfile.vehicle)||'';
       document.getElementById('gyomu-start-place').value='';
       document.getElementById('gyomu-start-datetime').value=nowLocalInput();
       document.getElementById('gyomu-start-odo').value='';
@@ -1461,6 +1520,7 @@ function saveGyomu(){
     route:val('gyomu-route'),
     updatedAt: firebase.database.ServerValue.TIMESTAMP
   };
+  rememberVehicle(data.vehicle);
   dref('users/'+currentUser.uid+'/gyomu/'+todayKey()).set(data)
     .then(function(){ toast('✅ 業務簿を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
@@ -1618,6 +1678,135 @@ function updatePendingBadge(){
         banner.style.display='none';
       }
     }
+  });
+}
+
+/* ══════════════════════ まとめ役：記入漏れチェック ══════════════════════
+   判定に使う実データ構造（既存の saveTenko/saveGyomu/saveVehicleCheck を確認済み）:
+   - users/{uid}/tenko/{YYYY-MM-DD} … { pre:{datetime,...}, post:{datetime,...}, updatedAt }
+     乗務前＝pre.datetime が入っているか／乗務後＝post.datetime が入っているか、で判定。
+     （保存ボタンは1つで pre/post 両方まとめて書き込むが、日付が空欄のままだと
+       その項目は未記入のまま保存されるので、値の有無で判定できる）
+   - users/{uid}/gyomu/{YYYY-MM-DD} … { startDatetime, endDatetime, ..., updatedAt }
+     保存ボタンを1回押せば updatedAt が入るので、それを「業務簿◯」の判定に使う。
+   - users/{uid}/vehicleCheck/{YYYY-MM-DD} … { item1..item15, updatedAt }
+     同様に updatedAt の有無で「車両点検◯」を判定。
+*/
+function daysInMonth(ym){
+  var y=Number(ym.slice(0,4)), m=Number(ym.slice(5,7));
+  return new Date(y, m, 0).getDate();
+}
+function monthRange(ym){
+  var last=daysInMonth(ym);
+  return { start: ym+'-01', end: ym+'-'+(last<10?'0'+last:String(last)) };
+}
+function getApprovedUsersForCheck(){
+  return dref('users').once('value').then(function(snap){
+    var uids=[]; snap.forEach(function(c){uids.push(c.key);});
+    return Promise.all(uids.map(function(uid){
+      return dref('users/'+uid+'/profile').once('value').then(function(s){
+        var p=s.val()||{};
+        return {uid:uid, name:p.name||'名称未設定', status:profileStatus(p)};
+      });
+    }));
+  }).then(function(rows){
+    return rows.filter(function(r){ return r.status==='approved'; });
+  });
+}
+function setFcDateToday(){
+  document.getElementById('fc-date').value = todayKey();
+  loadFillCheckDaily();
+}
+/* 今日（または選んだ日）の記入状況 */
+function loadFillCheckDaily(){
+  if(!isManager) return;
+  var dateInput=document.getElementById('fc-date');
+  if(!dateInput.value) dateInput.value = todayKey();
+  var d=dateInput.value;
+  var el=document.getElementById('fillcheck-list');
+  el.innerHTML='<div class="empty">読み込み中…</div>';
+  getApprovedUsersForCheck().then(function(users){
+    if(!users.length){ el.innerHTML='<div class="empty">承認済みメンバーがいません</div>'; return; }
+    return Promise.all(users.map(function(u){
+      return Promise.all([
+        dref('users/'+u.uid+'/tenko/'+d).once('value'),
+        dref('users/'+u.uid+'/gyomu/'+d).once('value'),
+        dref('users/'+u.uid+'/vehicleCheck/'+d).once('value')
+      ]).then(function(r){
+        var tenko=r[0].val(), gyomu=r[1].val(), vc=r[2].val();
+        return {
+          name:u.name,
+          pre: !!(tenko && tenko.pre && tenko.pre.datetime),
+          post: !!(tenko && tenko.post && tenko.post.datetime),
+          gyomu: !!(gyomu && gyomu.updatedAt),
+          vc: !!(vc && vc.updatedAt)
+        };
+      });
+    })).then(function(list){
+      el.innerHTML = list.map(function(r){
+        var allOk = r.pre && r.post && r.gyomu && r.vc;
+        return '<div class="fc-item '+(allOk?'fc-ok':'fc-ng')+'">'
+          +'<div class="fc-name">'+esc(r.name)+'<span class="fc-status '+(allOk?'ok':'ng')+'">'+(allOk?'✅ 揃っています':'⚠️ 未記入あり')+'</span></div>'
+          +'<div class="fc-pills">'
+            +'<span class="fc-pill '+(r.pre?'ok':'ng')+'">乗務前'+(r.pre?'◯':'✗')+'</span>'
+            +'<span class="fc-pill '+(r.post?'ok':'ng')+'">乗務後'+(r.post?'◯':'✗')+'</span>'
+            +'<span class="fc-pill '+(r.gyomu?'ok':'ng')+'">業務簿'+(r.gyomu?'◯':'✗')+'</span>'
+            +'<span class="fc-pill '+(r.vc?'ok':'ng')+'">車両点検'+(r.vc?'◯':'✗')+'</span>'
+          +'</div></div>';
+      }).join('');
+    });
+  }).catch(function(err){
+    el.innerHTML='<div class="empty" style="color:var(--bad)">⚠️ 読み込みに失敗しました: '+esc(err.message)+'</div>';
+  });
+}
+/* 月単位の記入率（対象月のみ範囲指定で読む＝全履歴は読まない） */
+function loadFillCheckMonthly(){
+  if(!isManager) return;
+  var monthInput=document.getElementById('fc-month');
+  if(!monthInput.value) monthInput.value = todayKey().slice(0,7);
+  var ym=monthInput.value;
+  var range=monthRange(ym);
+  var el=document.getElementById('fillcheck-monthly-list');
+  el.innerHTML='<div class="empty">読み込み中…</div>';
+  getApprovedUsersForCheck().then(function(users){
+    if(!users.length){ el.innerHTML='<div class="empty">承認済みメンバーがいません</div>'; return; }
+    return Promise.all(users.map(function(u){
+      return Promise.all([
+        dref('users/'+u.uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+        dref('users/'+u.uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+        dref('users/'+u.uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+      ]).then(function(r){
+        var tenkoSnap=r[0], gyomuSnap=r[1], vcSnap=r[2];
+        var tenkoDays=0, gyomuDays=0, vcDays=0;
+        var workedDays={};
+        tenkoSnap.forEach(function(c){
+          var v=c.val();
+          if(v && v.pre && v.pre.datetime && v.post && v.post.datetime){ tenkoDays++; }
+          if(v && v.updatedAt) workedDays[c.key]=true;
+        });
+        gyomuSnap.forEach(function(c){
+          var v=c.val();
+          if(v && v.updatedAt){ gyomuDays++; workedDays[c.key]=true; }
+        });
+        vcSnap.forEach(function(c){
+          var v=c.val();
+          if(v && v.updatedAt){ vcDays++; workedDays[c.key]=true; }
+        });
+        return {name:u.name, tenkoDays:tenkoDays, gyomuDays:gyomuDays, vcDays:vcDays, worked:Object.keys(workedDays).length};
+      });
+    })).then(function(list){
+      var mm=Number(ym.slice(5,7));
+      el.innerHTML = list.map(function(r){
+        return '<div class="fc-month-item"><div class="fc-month-name">'+esc(r.name)+' ・ '+mm+'月</div>'
+          +'<div class="fc-month-row"><span>稼働日数</span><b>'+r.worked+'日</b></div>'
+          +'<div class="fc-month-row"><span>点呼簿（乗務前・乗務後とも）</span><b>'+r.tenkoDays+' / '+r.worked+'日</b></div>'
+          +'<div class="fc-month-row"><span>業務簿</span><b>'+r.gyomuDays+' / '+r.worked+'日</b></div>'
+          +'<div class="fc-month-row"><span>車両点検</span><b>'+r.vcDays+' / '+r.worked+'日</b></div>'
+          +'</div>';
+      }).join('');
+    });
+  }).catch(function(err){
+    el.innerHTML='<div class="empty" style="color:var(--bad)">⚠️ 読み込みに失敗しました: '+esc(err.message)+'</div>';
   });
 }
 
