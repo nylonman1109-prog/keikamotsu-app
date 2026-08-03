@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>軽貨物まるごとアプリ 強化版</title>
+<title>軽貨物まるごとアプリ</title>
 
 <!-- PWA: ホーム画面に追加してアプリのように起動するための設定 -->
 <link rel="manifest" href="./manifest.json">
@@ -38,7 +38,10 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .screen.active{display:flex;}
 
 /* ── ヘッダー ── */
-.header{color:white;padding:14px 16px 40px;position:relative;}
+/* 下に続く要素を16px引き上げてヘッダーの色面に重ねる。
+   引き上げを「ヘッダー側」に持たせることで、間に承認待ちバナーが入っても
+   バナーが食われず、バナーの有無どちらでも正しく重なる。 */
+.header{color:white;padding:14px 16px 40px;position:relative;margin-bottom:-16px;}
 .header-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .header-user{display:flex;align-items:center;gap:8px;font-size:12px;background:rgba(255,255,255,.18);padding:5px 10px 5px 6px;border-radius:20px;min-width:0;}
 .header-avatar{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;}
@@ -50,7 +53,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
 /* ── ホーム背景（グラデ＋波） ── */
 #home{background:linear-gradient(155deg,#1565C0 0%,#1E88E5 38%,var(--bg) 38%);}
-.home-body{padding:0 14px 24px;flex:1;margin-top:-16px;}
+.home-body{padding:0 14px 24px;flex:1;}
 
 /* 損益カード（主役） */
 .profit-card{background:var(--card);border-radius:18px;padding:18px 18px 16px;margin-bottom:14px;box-shadow:0 6px 20px rgba(0,0,0,.12);}
@@ -83,6 +86,22 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .goal-bar-fill.yellow{background:linear-gradient(90deg,#FFCA28,#F9A825);}
 .goal-bar-fill.red{background:linear-gradient(90deg,#EF5350,#C62828);}
 .goal-pct{text-align:right;font-size:11px;font-weight:800;color:var(--sub);margin-top:5px;}
+
+/* 今日の目標カード（月間目標からの逆算） */
+.today-goal-card{border-radius:16px;padding:14px 18px;margin-bottom:10px;box-shadow:var(--shadow);}
+.today-goal-main{font-size:17px;font-weight:800;line-height:1.4;}
+.today-goal-main b{font-size:24px;}
+.today-goal-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;vertical-align:middle;white-space:nowrap;}
+.today-goal-sub{font-size:11px;font-weight:700;margin-top:3px;opacity:.85;}
+.today-goal-card.state-ahead{background:var(--good-light);color:var(--good);}
+.today-goal-card.state-ahead .today-goal-badge{background:var(--good);color:white;}
+.today-goal-card.state-ontrack{background:var(--money-light);color:var(--money);}
+.today-goal-card.state-ontrack .today-goal-badge{background:var(--money);color:white;}
+.today-goal-card.state-behind{background:var(--warn-light);color:var(--warn);}
+.today-goal-card.state-behind .today-goal-badge{background:var(--warn);color:white;}
+.today-goal-card.state-done{background:linear-gradient(135deg,#2E7D32,#43A047);color:white;}
+.today-goal-card.state-warn{background:var(--bad-light);color:var(--bad);}
+.today-goal-note{font-size:10px;color:#90A4AE;text-align:center;margin:-4px 0 14px;}
 
 /* 月次グラフカード */
 .chart-card{background:var(--card);border-radius:16px;padding:16px 16px 10px;margin-bottom:14px;box-shadow:var(--shadow);}
@@ -142,13 +161,26 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .q-label{font-size:13px;font-weight:600;margin-bottom:7px;}
 .field{width:100%;padding:11px 12px;border:2px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;background:#FAFAFA;color:var(--text);outline:none;}
 .field:focus{border-color:var(--money);background:white;}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+/* 2列レイアウト。狭い画面では自動で1列に折り返す（日時欄が縮まず重なるのを防ぐ） */
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 8px;}
+.row2>*{min-width:0;}          /* グリッド内で中身がはみ出さないための保険 */
+.row2 .field{min-width:0;}
+/* 日時を含む行は必要幅が大きいので、折り返しのしきい値を広くとる */
+.row2.row2-dt{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+.row2 .q-label{min-height:1.2em;}
 
 /* 点呼・業務簿フォームのチップ選択（有/無・点呼方法などの選択欄） */
 .chip-row{display:flex;gap:6px;flex-wrap:wrap;}
 .chip{padding:8px 14px;border:2px solid var(--border);border-radius:20px;font-size:12px;font-weight:700;color:var(--sub);background:#FAFAFA;cursor:pointer;}
 .chip.active{border-color:var(--money);background:var(--money-light);color:var(--money);}
 .calc-box{background:var(--money-light);border:2px solid var(--money);border-radius:10px;padding:12px 14px;font-size:17px;font-weight:800;color:var(--money);text-align:center;}
+
+/* 単位つき入力（mg/L・km など）。入力欄が縮んで単位と重ならないようにする */
+.unit-row{display:flex;align-items:center;gap:8px;}
+.unit-row .field{min-width:0;flex:1;}
+.unit-label{font-size:13px;color:var(--sub);white-space:nowrap;}
+.quick-btn{padding:12px 14px;border:2px solid var(--border);border-radius:10px;background:#FAFAFA;color:var(--sub);font-size:13px;font-weight:700;font-family:inherit;white-space:nowrap;cursor:pointer;}
+.quick-btn:active{background:var(--money-light);border-color:var(--money);color:var(--money);}
 
 /* カメラボタン */
 .camera-btn{width:100%;border:none;border-radius:16px;padding:22px 14px;background:linear-gradient(135deg,#AD1457,#D81B60);color:white;font-size:16px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 6px 16px rgba(173,20,87,.35);margin-bottom:8px;}
@@ -220,6 +252,60 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .team-btn.stop{background:var(--sub);}
 .team-btn-row{display:flex;gap:6px;}
 .team-count-badge{display:none;background:var(--gold);color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;margin-left:5px;vertical-align:1px;}
+
+/* 記入漏れチェック */
+.fc-datebar{display:flex;align-items:center;gap:8px;margin:4px 2px 10px;}
+.fc-datebar input{width:auto;flex:none;padding:9px 10px;font-size:13px;}
+.fc-datebar .fc-today-btn{border:2px solid var(--border);background:#fff;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;color:var(--sub);cursor:pointer;}
+.fc-datebar .fc-today-btn:active{background:var(--money-light);color:var(--money);border-color:var(--money);}
+.fc-item{background:var(--card);border-radius:12px;padding:11px 14px;margin-bottom:8px;box-shadow:var(--shadow);border-left:5px solid var(--border);}
+.fc-item.fc-ok{border-left-color:var(--good);}
+.fc-item.fc-ng{border-left-color:var(--bad);}
+.fc-name{font-size:14px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:6px;}
+.fc-name .fc-status{font-size:10px;font-weight:800;padding:2px 8px;border-radius:8px;}
+.fc-name .fc-status.ok{background:var(--good-light);color:var(--good);}
+.fc-name .fc-status.ng{background:var(--bad-light);color:var(--bad);}
+.fc-pills{display:flex;flex-wrap:wrap;gap:6px;}
+.fc-pill{font-size:11px;font-weight:800;padding:4px 10px;border-radius:8px;}
+.fc-pill.ok{background:var(--good-light);color:var(--good);}
+.fc-pill.ng{background:var(--bad-light);color:var(--bad);}
+.fc-month-item{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow);}
+.fc-month-name{font-size:14px;font-weight:700;margin-bottom:6px;}
+.fc-month-row{display:flex;justify-content:space-between;font-size:12px;color:var(--sub);padding:3px 0;}
+.fc-month-row b{color:var(--money);font-size:13px;}
+
+/* 帳票Excel出力セクション（運行記録タブ内） */
+.export-card{background:var(--card);border-radius:16px;padding:16px 18px;margin-bottom:14px;box-shadow:var(--shadow);}
+.export-title{font-size:13px;font-weight:800;margin-bottom:10px;}
+.export-row{margin-bottom:10px;}
+.export-row:last-child{margin-bottom:0;}
+.export-note{font-size:11px;color:var(--sub);background:#FAFAFA;border-radius:8px;padding:8px 10px;line-height:1.6;margin-bottom:10px;}
+.export-btn{width:100%;padding:14px;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:800;cursor:pointer;background:linear-gradient(135deg,#2E7D32,#43A047);box-shadow:0 4px 12px rgba(46,125,50,.3);}
+.export-btn:active{transform:scale(.98);}
+.export-btn:disabled{opacity:.6;}
+.export-status{font-size:12px;font-weight:700;margin-top:8px;text-align:center;}
+.export-status.err{color:var(--bad);}
+.export-status.ok{color:var(--good);}
+
+/* 記入カレンダー（自分／選択したメンバーの点呼簿・業務簿・車両点検） */
+.cal-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.cal-toolbar .field{margin:0;}
+.cal-legend{display:flex;flex-wrap:wrap;gap:10px;font-size:10px;color:var(--sub);margin-bottom:10px;}
+.cal-legend span{display:inline-flex;align-items:center;gap:4px;}
+.cal-legend i{width:9px;height:9px;border-radius:3px;display:inline-block;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-dow{font-size:10px;color:var(--sub);text-align:center;font-weight:700;padding-bottom:2px;}
+.cal-day{aspect-ratio:1/1;border-radius:9px;background:#FAFAFA;border:1.5px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;padding:2px;}
+.cal-day.empty{visibility:hidden;cursor:default;}
+.cal-day.full{background:var(--good-light);border-color:var(--good);}
+.cal-day.partial{background:var(--warn-light);border-color:var(--warn);}
+.cal-day.selected{outline:2px solid var(--money);outline-offset:1px;}
+.cal-day-num{font-size:11px;font-weight:700;color:var(--text);}
+.cal-dots{display:flex;gap:2px;}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:#CFD8DC;}
+.cal-dot.on{background:var(--good);}
+.cal-detail{background:var(--card);border-radius:12px;padding:12px 14px;margin-top:12px;box-shadow:var(--shadow);}
+.cal-detail-date{font-size:13px;font-weight:800;margin-bottom:8px;}
 
 /* ログイン */
 #login{background:linear-gradient(160deg,#1565C0,#1E88E5 55%,#0D47A1);justify-content:center;align-items:center;padding:24px;}
@@ -351,7 +437,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 <div id="home" class="screen">
   <div class="header">
     <div class="header-top">
-      <div class="header-user"><span class="header-avatar" id="header-avatar">−</span><span id="header-username">ログイン中…</span></div>
+      <div class="header-user" style="cursor:pointer" onclick="go('settings')"><span class="header-avatar" id="header-avatar">−</span><span id="header-username">ログイン中…</span><span style="font-size:10px;opacity:.75;margin-left:2px">▸</span></div>
       <div class="header-actions">
         <button class="header-manage" id="btn-team" onclick="go('team')" style="display:none">👥 全員を見る<span class="team-count-badge" id="team-badge"></span></button>
         <button class="header-manage" onclick="logout()">🚪</button>
@@ -378,12 +464,19 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       </div>
     </div>
 
+    <!-- 今日の目標（月間目標からの逆算。配達個数タブの「目標設定」の数字が変わると自動で再計算されます） -->
+    <div class="today-goal-card state-ontrack" id="today-goal-card">
+      <div class="today-goal-main" id="today-goal-main">今日の目標　<b>100個</b></div>
+      <div class="today-goal-sub" id="today-goal-sub">今月あと0個 ／ 残り0日</div>
+    </div>
+
     <!-- 達成率ゲージ（配達個数画面で入力した数がここに反映されます） -->
     <div class="goal-card">
       <div class="goal-top"><span class="goal-title">🎯 今日の配達</span><span class="goal-num"><b id="goal-count">0</b> / <span id="goal-target">100</span> 個</span></div>
       <div class="goal-bar-track"><div class="goal-bar-fill yellow" id="goal-bar" style="width:0%"></div></div>
       <div class="goal-pct" id="goal-pct">達成率 0%</div>
     </div>
+    <div class="today-goal-note">※「稼働日」は配達個数を記録した日で数えています</div>
 
     <!-- 月次グラフ -->
     <div class="chart-card">
@@ -399,6 +492,31 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
     </div>
 
     <div class="note">💡 レシート・配達個数・点呼簿・業務簿は下部タブ（レシート／個数／運行記録）から記録できます。</div>
+  </div>
+</div>
+
+<!-- ═══ ユーザー情報設定（ヘッダーの「ログイン中: ◯◯さん」をタップして開く） ═══ -->
+<div id="settings" class="screen">
+  <div class="subheader drive"><button class="btn-back" onclick="go('home')">‹</button><div><h1>ユーザー情報設定</h1><div class="subheader-sub">氏名・会社名などの登録内容</div></div></div>
+  <div class="form-body">
+    <div class="section">
+      <div class="section-title">🙍 基本情報</div>
+      <div class="q"><div class="q-label">氏名（表示名）</div><input type="text" class="field" id="settings-name" placeholder="例）北上奈世"></div>
+      <div style="font-size:11px;color:var(--sub);margin:-6px 2px 12px;line-height:1.5;">※帳票・ドライバー選択・管理画面の表示名として使われます</div>
+      <div class="q"><div class="q-label">会社名</div><input type="text" class="field" id="settings-company" placeholder="例）〇〇運送"></div>
+      <div class="q"><div class="q-label">営業所名</div><input type="text" class="field" id="settings-office" placeholder="例）〇〇営業所"></div>
+      <div style="font-size:11px;color:var(--sub);margin:-6px 2px 12px;line-height:1.5;">※点呼簿・業務簿・車両点検の帳票Excelのヘッダーに使われます</div>
+      <div class="q" style="margin-bottom:0"><div class="q-label">車両番号</div><input type="text" class="field" id="settings-vehicle" placeholder="例）八戸り3222"></div>
+      <div style="font-size:11px;color:var(--sub);margin:6px 2px 0;line-height:1.5;">※点呼簿の車両番号欄に自動で入る番号です</div>
+    </div>
+    <div class="section">
+      <div class="section-title">📧 ログイン情報</div>
+      <div class="q" style="margin-bottom:0"><div class="q-label">メールアドレス</div><input type="text" class="field" id="settings-email" disabled style="background:#EEEEEE;color:var(--sub);"></div>
+      <div style="font-size:11px;color:var(--sub);margin:6px 2px 0;line-height:1.5;">※認証に使うためここでは変更できません</div>
+    </div>
+    <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--money);" onclick="saveProfileSettings()">この内容を保存する</button>
+    <div id="settings-msg" style="display:none;font-size:12px;font-weight:700;margin-top:8px;text-align:center;"></div>
+    <div class="note" style="margin-top:14px;">🎯 1日の目標配達個数・今月の稼働予定日数は「配達個数」タブの<span class="profit-link" style="cursor:pointer" onclick="go('count')">目標設定へ ▸</span></div>
   </div>
 </div>
 
@@ -475,8 +593,10 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
     <div style="font-size:11px;color:var(--money);background:var(--money-light);border-radius:8px;padding:7px 10px;margin-top:10px;line-height:1.5;">🔗 この数はホームの達成率ゲージ・収入記録の個数欄に自動で反映されます</div>
     <div class="section-label" style="margin-left:2px">目標設定</div>
     <div class="section" style="padding:12px 14px">
-      <div class="q" style="margin-bottom:0"><div class="q-label">1日の目標個数</div><input type="text" inputmode="numeric" class="field" id="target-input" value="100" onchange="saveTarget()"></div>
+      <div class="q"><div class="q-label">1日の目標個数</div><input type="text" inputmode="numeric" class="field" id="target-input" value="100" onchange="saveTarget()"></div>
+      <div class="q" style="margin-bottom:0"><div class="q-label">今月の稼働予定日数</div><input type="text" inputmode="numeric" class="field" id="workdays-input" value="22" onchange="saveWorkDays()"></div>
     </div>
+    <div style="font-size:11px;color:var(--sub);margin:8px 2px 0;line-height:1.5;">🎯 この2つの数字から、ホームの「今日の目標」を自動で計算します（月間目標＝1日の目標×稼働予定日数）</div>
   </div>
 </div>
 
@@ -484,17 +604,41 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 <div id="drive" class="screen">
   <div class="subheader drive"><button class="btn-back" onclick="go('home')">‹</button><div><h1>運行記録</h1><div class="subheader-sub">点呼簿・業務簿・車両点検</div></div></div>
   <div class="form-body">
+
+    <!-- 帳票Excel出力（点呼簿・業務簿・車両点検をまとめて出力） -->
+    <div class="export-card">
+      <div class="export-title">📤 帳票をExcelで出力</div>
+      <div class="export-row"><div class="q-label">対象月</div><input type="month" class="field" id="export-month"></div>
+      <div class="export-row" id="export-driver-row" style="display:none">
+        <div class="q-label">対象ドライバー</div>
+        <select class="field" id="export-driver-select"></select>
+      </div>
+      <div class="export-note">※会社名・営業所名は「ユーザー情報設定」（ヘッダーの名前をタップ）で登録すると反映されます。休憩/睡眠・荷待ち・荷役作業・業務の交替・事故等の欄は入力欄が未実装のため空欄で出力されます（走行距離は業務簿の記録から自動計算します）。</div>
+      <button class="export-btn" id="export-btn" onclick="exportLedgerExcel()">📥 点呼簿・業務簿・車両点検をダウンロード</button>
+      <div class="export-status" id="export-status" style="display:none"></div>
+    </div>
+
     <div class="subtab-row">
       <button class="subtab-btn active" id="subtab-tenko" onclick="showSub('tenko')">🖐️ 点呼簿</button>
       <button class="subtab-btn" id="subtab-gyomu" onclick="showSub('gyomu')">📋 業務簿</button>
       <button class="subtab-btn" id="subtab-vehicle" onclick="showSub('vehicle')">🔧 車両点検</button>
+      <button class="subtab-btn" id="subtab-cal" onclick="showSub('cal')">🗓 記入状況</button>
     </div>
 
     <!-- ── 点呼簿 ── -->
     <div class="subpanel active" id="sub-tenko">
+      <!-- 運転者名・車両番号は点呼記録簿の法定記載事項。提出様式にも列があるため点呼簿にも持たせる -->
+      <div class="section">
+        <div class="section-title">🚚 この日の運転者・車両</div>
+        <div class="q"><div class="row2">
+          <div><div class="q-label">運転者名</div><input type="text" class="field" id="tenko-driver"></div>
+          <div><div class="q-label">車両番号</div><input type="text" class="field" id="tenko-vehicle" placeholder="例）八戸り3222"></div>
+        </div></div>
+      </div>
+
       <div class="section">
         <div class="section-title">🌅 乗務前点呼</div>
-        <div class="q"><div class="row2">
+        <div class="q"><div class="row2 row2-dt">
           <div><div class="q-label">実施日時</div><input type="datetime-local" class="field" id="tenko-pre-datetime"></div>
           <div><div class="q-label">点呼執行者</div><input type="text" class="field" id="tenko-pre-executor"></div>
         </div></div>
@@ -504,6 +648,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
         <div class="q"><div class="q-label">アルコール検知器使用の有無</div><div class="chip-row" id="tenko-pre-alcohol">
           <span class="chip active" onclick="toggleChip(this)">有</span><span class="chip" onclick="toggleChip(this)">無</span>
         </div></div>
+        <div class="q"><div class="q-label">検知器の測定数値</div>
+          <div class="unit-row">
+            <input type="text" inputmode="decimal" class="field" id="tenko-pre-alcohol-value" placeholder="例）0.00">
+            <span class="unit-label">mg/L</span>
+            <button type="button" class="quick-btn" onclick="setAlcoholValue('tenko-pre-alcohol-value','0.00')">0.00</button>
+          </div>
+        </div>
         <div class="q"><div class="q-label">酒気帯びの有無</div><div class="chip-row" id="tenko-pre-drink">
           <span class="chip active" onclick="toggleChip(this)">無</span><span class="chip" onclick="toggleChip(this)">有</span>
         </div></div>
@@ -516,7 +667,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
       <div class="section">
         <div class="section-title">🌙 乗務後点呼</div>
-        <div class="q"><div class="row2">
+        <div class="q"><div class="row2 row2-dt">
           <div><div class="q-label">実施日時</div><input type="datetime-local" class="field" id="tenko-post-datetime"></div>
           <div><div class="q-label">点呼執行者</div><input type="text" class="field" id="tenko-post-executor"></div>
         </div></div>
@@ -526,6 +677,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
         <div class="q"><div class="q-label">アルコール検知器使用の有無</div><div class="chip-row" id="tenko-post-alcohol">
           <span class="chip active" onclick="toggleChip(this)">有</span><span class="chip" onclick="toggleChip(this)">無</span>
         </div></div>
+        <div class="q"><div class="q-label">検知器の測定数値</div>
+          <div class="unit-row">
+            <input type="text" inputmode="decimal" class="field" id="tenko-post-alcohol-value" placeholder="例）0.00">
+            <span class="unit-label">mg/L</span>
+            <button type="button" class="quick-btn" onclick="setAlcoholValue('tenko-post-alcohol-value','0.00')">0.00</button>
+          </div>
+        </div>
         <div class="q"><div class="q-label">酒気帯びの有無</div><div class="chip-row" id="tenko-post-drink">
           <span class="chip active" onclick="toggleChip(this)">無</span><span class="chip" onclick="toggleChip(this)">有</span>
         </div></div>
@@ -545,17 +703,17 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
           <div><div class="q-label">車両番号</div><input type="text" class="field" id="gyomu-vehicle" placeholder="例）八戸り3222"></div>
         </div></div>
         <div class="q"><div class="q-label">出発地</div><input type="text" class="field" id="gyomu-start-place" placeholder="例）おいらせ町営業所"></div>
-        <div class="q"><div class="row2">
+        <div class="q"><div class="row2 row2-dt">
           <div><div class="q-label">出発日時</div><input type="datetime-local" class="field" id="gyomu-start-datetime"></div>
-          <div><div class="q-label">出発時の走行距離計</div><div style="display:flex;align-items:center;gap:8px;"><input type="text" inputmode="numeric" class="field" id="gyomu-start-odo" oninput="calcGyomuDistance()"><span style="font-size:13px;color:var(--sub);white-space:nowrap;">km</span></div></div>
+          <div><div class="q-label">出発時の走行距離計</div><div class="unit-row"><input type="text" inputmode="numeric" class="field" id="gyomu-start-odo" oninput="calcGyomuDistance()"><span class="unit-label">km</span></div></div>
         </div></div>
       </div>
       <div class="section">
         <div class="section-title">🏁 業務終了</div>
         <div class="q"><div class="q-label">到着地</div><input type="text" class="field" id="gyomu-end-place" placeholder="例）おいらせ町営業所"></div>
-        <div class="q"><div class="row2">
+        <div class="q"><div class="row2 row2-dt">
           <div><div class="q-label">到着日時</div><input type="datetime-local" class="field" id="gyomu-end-datetime"></div>
-          <div><div class="q-label">到着時の走行距離計</div><div style="display:flex;align-items:center;gap:8px;"><input type="text" inputmode="numeric" class="field" id="gyomu-end-odo" oninput="calcGyomuDistance()"><span style="font-size:13px;color:var(--sub);white-space:nowrap;">km</span></div></div>
+          <div><div class="q-label">到着時の走行距離計</div><div class="unit-row"><input type="text" inputmode="numeric" class="field" id="gyomu-end-odo" oninput="calcGyomuDistance()"><span class="unit-label">km</span></div></div>
         </div></div>
         <div class="q"><div class="q-label">走行距離（自動計算・参考表示）</div><div class="calc-box" id="gyomu-distance">0 km</div></div>
         <div class="q"><div class="q-label">集荷・配達場所など（主な経過地点）</div><textarea class="field" rows="3" style="resize:none;" id="gyomu-route" placeholder="例）八戸市○○倉庫 → 青森市○○工場"></textarea></div>
@@ -595,6 +753,26 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       </div>
       <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:#4527A0;" onclick="saveVehicleCheck()">この点検を記録する</button>
     </div>
+
+    <!-- ── 記入状況カレンダー（自分／選択したメンバー） ── -->
+    <div class="subpanel" id="sub-cal">
+      <div class="section">
+        <div class="cal-toolbar">
+          <input type="month" class="field" id="cal-month" onchange="loadCalendar()">
+          <select class="field" id="cal-driver-select" style="display:none" onchange="loadCalendar()"></select>
+        </div>
+        <div class="cal-legend">
+          <span><i style="background:var(--good)"></i>すべて記入済み</span>
+          <span><i style="background:var(--warn)"></i>一部だけ記入</span>
+          <span><i style="background:#CFD8DC"></i>未記入</span>
+        </div>
+        <div class="cal-grid" style="margin-bottom:4px">
+          <div class="cal-dow">日</div><div class="cal-dow">月</div><div class="cal-dow">火</div><div class="cal-dow">水</div><div class="cal-dow">木</div><div class="cal-dow">金</div><div class="cal-dow">土</div>
+        </div>
+        <div class="cal-grid" id="cal-grid"><div class="empty">読み込み中…</div></div>
+        <div class="cal-detail" id="cal-detail" style="display:none"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -625,6 +803,20 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
     <div class="section-label" style="margin-left:2px" id="pending-label">承認待ち 0件</div>
     <div class="team-list" id="pending-list"><div class="empty">読み込み中…</div></div>
+
+    <div class="section-label" style="margin-left:2px;margin-top:18px;">📋 今日の記入状況</div>
+    <div class="fc-datebar">
+      <input type="date" class="field" id="fc-date" onchange="loadFillCheckDaily()">
+      <button type="button" class="fc-today-btn" onclick="setFcDateToday()">今日</button>
+    </div>
+    <div class="team-list" id="fillcheck-list"><div class="empty">読み込み中…</div></div>
+
+    <div class="section-label" style="margin-left:2px;margin-top:18px;">🗓️ 月の記入率</div>
+    <div class="fc-datebar">
+      <input type="month" class="field" id="fc-month" onchange="loadFillCheckMonthly()">
+    </div>
+    <div class="note" style="margin:0 2px 10px;">「◯日中」の分母は<b>その月にその人が何かしら記録した日数（稼働日数）</b>＝点呼・業務簿・車両点検のいずれかを保存した日です。休みの日はカウントしません。点呼は乗務前・乗務後の<b>両方</b>が入っている日を「記入済み」としています。</div>
+    <div class="team-list" id="fillcheck-monthly-list"><div class="empty">読み込み中…</div></div>
 
     <div class="section-label" style="margin-left:2px;margin-top:18px;">承認済みメンバー</div>
     <div class="team-list" id="team-list"><div class="empty">読み込み中…</div></div>
@@ -719,7 +911,7 @@ function sendApprovalRequestEmail(profile){
 var CATS=['燃料費（ガソリン）','車両費・修繕費','保険料','通信費','消耗品費','接待交際費','租税公課','地代家賃','雑費'];
 
 var currentUser=null, currentProfile=null, isManager=false;
-var countVal=0, goalTarget=100;
+var countVal=0, goalTarget=100, workDays=22;
 var chartData=[];
 var authMode='login';
 
@@ -770,9 +962,10 @@ function go(id){
   else if(id==='income') loadIncomeScreen();
   else if(id==='expense') loadExpenseScreen();
   else if(id==='count') loadCountScreen();
+  else if(id==='settings') loadSettingsScreen();
   else if(id==='drive') loadDriveToday();
   else if(id==='report') loadReport();
-  else if(id==='team') loadTeam();
+  else if(id==='team'){ loadTeam(); loadFillCheckDaily(); loadFillCheckMonthly(); }
 }
 function showSub(id){
   document.querySelectorAll('.subtab-btn').forEach(function(b){b.classList.remove('active');});
@@ -780,6 +973,7 @@ function showSub(id){
   document.querySelectorAll('.subpanel').forEach(function(p){p.classList.remove('active');});
   document.getElementById('sub-'+id).classList.add('active');
   window.scrollTo(0,0);
+  if(id==='cal') loadCalendar();
 }
 function goDrive(sub){ go('drive'); showSub(sub); }
 
@@ -863,7 +1057,7 @@ function submitAuth(){
       var isMgr = MANAGER_EMAILS.indexOf(email.toLowerCase())>=0;
       var role = isMgr ? 'manager' : 'driver';
       var status = isMgr ? 'approved' : 'pending'; // まとめ役は自動承認。それ以外は承認待ちからスタート
-      var profile = {name:name, role:role, status:status, email:email, targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
+      var profile = {name:name, role:role, status:status, email:email, targetCount:100, workDaysPerMonth:22, createdAt:firebase.database.ServerValue.TIMESTAMP};
       return dref('users/'+cred.user.uid+'/profile').set(profile).then(function(){
         currentUser=cred.user;
         currentProfile=profile;
@@ -941,7 +1135,7 @@ auth.onAuthStateChanged(function(user){
          二重に走っても最終的な内容は同じなので問題ない。 */
       var role = MANAGER_EMAILS.indexOf((user.email||'').toLowerCase())>=0 ? 'manager' : 'driver';
       var status = role==='manager' ? 'approved' : 'pending';
-      var fallbackProfile = {name:(user.email||'ドライバー').split('@')[0], role:role, status:status, email:user.email||'', targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
+      var fallbackProfile = {name:(user.email||'ドライバー').split('@')[0], role:role, status:status, email:user.email||'', targetCount:100, workDaysPerMonth:22, createdAt:firebase.database.ServerValue.TIMESTAMP};
       dref('users/'+user.uid+'/profile').set(fallbackProfile).then(function(){
         currentProfile=fallbackProfile;
         dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
@@ -961,6 +1155,7 @@ function finishInit(){
   var status = currentProfile.status || (isManager ? 'approved' : 'pending');
   currentProfile.status = status;
   goalTarget = currentProfile.targetCount || 100;
+  workDays = currentProfile.workDaysPerMonth || 22;
   document.getElementById('header-username').textContent = 'ログイン中: '+(currentProfile.name||currentUser.email)+'さん';
   document.getElementById('header-avatar').textContent = (currentProfile.name||'ド').charAt(0);
   document.getElementById('btn-team').style.display = isManager ? 'flex' : 'none';
@@ -1031,8 +1226,73 @@ function refreshHome(){
     document.getElementById('home-profit-val').textContent=yenSigned(profit);
   });
 
+  refreshTodayGoalCard(ym);
   loadChart();
   if(isManager) updatePendingBadge();
+}
+
+/* ── 今日の目標（月間目標からの逆算） ──
+   月間目標 = 1日の目標個数(targetCount) × 今月の稼働予定日数(workDaysPerMonth)
+   今日の目標 = (月間目標 − 今月これまでの累計個数) ÷ 残りの稼働日数（切り上げ）
+   「稼働日」の数え方: 配達個数(deliveries)を記録した日を稼働日と数える。
+   ※まとめ役の「記入漏れチェック」は点呼簿/業務簿/車両点検の記入有無で稼働日を数えているが、
+     これは安全書類の提出漏れを見るための定義。こちらは配達ペースの逆算が目的なので、
+     素直に配達個数の記録日を使う（値の再取得も少なく済む）。
+   「今月これまでの累計」「稼働日数」はどちらも“今日より前”の日だけを数える。
+   今日はこれから稼働する１日として「残りの稼働日数」側に含める。 */
+function computeTodayGoalStats(uid, ym){
+  return dref('users/'+uid+'/deliveries').once('value').then(function(snap){
+    var today = todayKey();
+    var cumulative = 0, workedDaysBeforeToday = 0;
+    snap.forEach(function(child){
+      var key = child.key;
+      if(key.slice(0,7) !== ym) return;
+      if(key >= today) return; // 今日・未来分はここには含めない
+      var v = child.val();
+      cumulative += Number(v && v.count) || 0;
+      workedDaysBeforeToday++;
+    });
+    return {cumulative:cumulative, workedDaysBeforeToday:workedDaysBeforeToday};
+  });
+}
+function refreshTodayGoalCard(ym){
+  computeTodayGoalStats(currentUser.uid, ym || monthKey(todayKey())).then(function(s){
+    renderTodayGoalCard(s.cumulative, s.workedDaysBeforeToday);
+  });
+}
+function renderTodayGoalCard(cumulative, workedDaysBeforeToday){
+  var el=document.getElementById('today-goal-card'); if(!el) return;
+  var mainEl=document.getElementById('today-goal-main');
+  var subEl=document.getElementById('today-goal-sub');
+
+  var perDay = goalTarget>0 ? goalTarget : 100;           // 1日の目標個数（未設定・不正値は既定100にフォールバック）
+  var totalWorkDays = workDays>0 ? workDays : 22;          // 今月の稼働予定日数（未設定・不正値は既定22にフォールバック）
+  var monthlyGoal = perDay * totalWorkDays;
+  var remainGoal = monthlyGoal - cumulative;                // 月間目標まであと何個か
+  var remainDays = totalWorkDays - workedDaysBeforeToday;   // 残りの稼働日数（今日を含む）
+
+  if(remainGoal<=0){
+    // 月間目標を既に達成 → お祝い表示。割り算はしない
+    el.className='today-goal-card state-done';
+    mainEl.innerHTML='🎉 今月の目標を達成済みです';
+    subEl.textContent='今月の実績 '+cumulative+'個 ／ 目標 '+monthlyGoal+'個';
+    return;
+  }
+  if(remainDays<=0){
+    // 稼働予定日数を使い切っている(または超過) → ゼロ除算を避け、注意表示のみ
+    el.className='today-goal-card state-warn';
+    mainEl.innerHTML='⚠️ 予定の稼働日数を超えています';
+    subEl.textContent='「今月の稼働予定日数」（配達個数タブ）の設定を見直してください';
+    return;
+  }
+  var todayTarget = Math.ceil(remainGoal/remainDays); // 小数は切り上げ
+  var stateClass, badge;
+  if(todayTarget<perDay){ stateClass='state-ahead'; badge='😌 貯金あり'; }
+  else if(todayTarget>perDay){ stateClass='state-behind'; badge='🔥 追い上げ'; }
+  else { stateClass='state-ontrack'; badge='👍 順調ペース'; }
+  el.className='today-goal-card '+stateClass;
+  mainEl.innerHTML='今日の目標　<b>'+todayTarget+'個</b>　<span class="today-goal-badge">'+badge+'</span>';
+  subEl.textContent='今月あと'+remainGoal+'個 ／ 残り'+remainDays+'日';
 }
 /* skipSelf=trueのときは「個数」画面の入力欄自体は書き換えない（入力中にカーソルが飛ぶのを防ぐ） */
 function syncCountViews(skipSelf){
@@ -1320,6 +1580,7 @@ function loadCountScreen(){
   var d=new Date();
   document.getElementById('count-date').textContent = d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
   document.getElementById('target-input').value = goalTarget;
+  document.getElementById('workdays-input').value = workDays;
   syncCountViews();
 }
 function saveCount(){
@@ -1333,7 +1594,52 @@ function saveTarget(){
   goalTarget=v;
   dref('users/'+currentUser.uid+'/profile/targetCount').set(v);
   syncCountViews();
+  refreshTodayGoalCard();
   toast('🎯 目標を更新しました');
+}
+/* 今月の稼働予定日数（「今日の目標」の逆算計算に使う。既定22日） */
+function saveWorkDays(){
+  var v=num(document.getElementById('workdays-input').value);
+  if(v<=0) v=22;
+  workDays=v;
+  dref('users/'+currentUser.uid+'/profile/workDaysPerMonth').set(v);
+  refreshTodayGoalCard();
+  toast('🎯 稼働予定日数を更新しました');
+}
+
+/* ══════════════════════ ユーザー情報設定 ══════════════════════ */
+function loadSettingsScreen(){
+  if(!currentProfile) return;
+  document.getElementById('settings-name').value = currentProfile.name||'';
+  document.getElementById('settings-company').value = currentProfile.companyName||'';
+  document.getElementById('settings-office').value = currentProfile.officeName||'';
+  document.getElementById('settings-vehicle').value = currentProfile.vehicle||'';
+  document.getElementById('settings-email').value = currentProfile.email||(currentUser&&currentUser.email)||'';
+  var msg=document.getElementById('settings-msg'); msg.style.display='none';
+}
+/* role/status は本人による書き換えがルール上禁止(かつ触る必要がない)ため、
+   更新オブジェクトに一切含めない。update()なので指定したキー以外(role/status等)は
+   そのまま残る＝セキュリティルールの「role/status不変」条件を自然に満たす。 */
+function saveProfileSettings(){
+  var msg=document.getElementById('settings-msg');
+  var name=document.getElementById('settings-name').value.trim();
+  if(!name){
+    msg.style.color='var(--bad)'; msg.textContent='氏名を入力してください'; msg.style.display='block';
+    return;
+  }
+  var company=document.getElementById('settings-company').value.trim();
+  var office=document.getElementById('settings-office').value.trim();
+  var vehicle=document.getElementById('settings-vehicle').value.trim();
+  var updates={name:name, companyName:company, officeName:office, vehicle:vehicle};
+  dref('users/'+currentUser.uid+'/profile').update(updates).then(function(){
+    currentProfile.name=name; currentProfile.companyName=company; currentProfile.officeName=office; currentProfile.vehicle=vehicle;
+    document.getElementById('header-username').textContent = 'ログイン中: '+name+'さん';
+    document.getElementById('header-avatar').textContent = name.charAt(0);
+    msg.style.color='var(--good)'; msg.textContent='✅ 保存しました'; msg.style.display='block';
+    toast('✅ ユーザー情報を保存しました');
+  }).catch(function(err){
+    msg.style.color='var(--bad)'; msg.textContent='保存に失敗しました: '+err.message; msg.style.display='block';
+  });
 }
 
 /* ══════════════════════ 運行記録：点呼簿 ══════════════════════ */
@@ -1341,15 +1647,23 @@ function loadDriveToday(){
   loadTenko();
   loadGyomu();
   loadVehicleCheck();
+  var em=document.getElementById('export-month'); if(em && !em.value) em.value=todayKey().slice(0,7);
+  var cm=document.getElementById('cal-month'); if(cm && !cm.value) cm.value=todayKey().slice(0,7);
+  populateDriverSelects();
 }
 function loadTenko(){
   dref('users/'+currentUser.uid+'/tenko/'+todayKey()).once('value').then(function(snap){
     var v=snap.val();
+    var defName=(currentProfile&&currentProfile.name)||'';
+    var defVehicle=(currentProfile&&currentProfile.vehicle)||'';
     if(v){
+      document.getElementById('tenko-driver').value=v.driver||defName;
+      document.getElementById('tenko-vehicle').value=v.vehicle||defVehicle;
       document.getElementById('tenko-pre-datetime').value=v.pre.datetime||'';
       document.getElementById('tenko-pre-executor').value=v.pre.executor||'';
       setChipValue('tenko-pre-method', v.pre.method);
       setChipValue('tenko-pre-alcohol', v.pre.alcoholCheck);
+      document.getElementById('tenko-pre-alcohol-value').value=v.pre.alcoholValue||'';
       setChipValue('tenko-pre-drink', v.pre.drinking);
       document.getElementById('tenko-pre-condition').value=v.pre.condition||'';
       setChipValue('tenko-pre-inspection', v.pre.inspection);
@@ -1358,34 +1672,54 @@ function loadTenko(){
       document.getElementById('tenko-post-executor').value=v.post.executor||'';
       setChipValue('tenko-post-method', v.post.method);
       setChipValue('tenko-post-alcohol', v.post.alcoholCheck);
+      document.getElementById('tenko-post-alcohol-value').value=v.post.alcoholValue||'';
       setChipValue('tenko-post-drink', v.post.drinking);
       document.getElementById('tenko-post-condition').value=v.post.roadCondition||'';
       document.getElementById('tenko-post-handover').value=v.post.handover||'';
       document.getElementById('tenko-post-note').value=v.post.note||'';
     } else {
+      document.getElementById('tenko-driver').value=defName;
+      document.getElementById('tenko-vehicle').value=defVehicle;
       document.getElementById('tenko-pre-datetime').value=nowLocalInput();
       document.getElementById('tenko-pre-executor').value=(currentProfile&&currentProfile.name)||'';
+      document.getElementById('tenko-pre-alcohol-value').value='';
       document.getElementById('tenko-post-datetime').value='';
       document.getElementById('tenko-post-executor').value=(currentProfile&&currentProfile.name)||'';
+      document.getElementById('tenko-post-alcohol-value').value='';
     }
   });
 }
+/* アルコール検知器の測定数値のクイック入力（毎日ほぼ 0.00 なので1タップで入れられるように） */
+function setAlcoholValue(id, v){
+  document.getElementById(id).value = v;
+}
+/* 車両番号は毎日同じなので、一度入れたらプロフィールに覚えさせて翌日から自動で入るようにする */
+function rememberVehicle(v){
+  if(!v || !currentUser) return;
+  if(currentProfile && currentProfile.vehicle===v) return;
+  if(currentProfile) currentProfile.vehicle=v;
+  dref('users/'+currentUser.uid+'/profile/vehicle').set(v);
+}
 function saveTenko(){
   var data={
+    driver:val('tenko-driver'), vehicle:val('tenko-vehicle'),
     pre:{
       datetime:val('tenko-pre-datetime'), executor:val('tenko-pre-executor'),
       method:getChipValue('tenko-pre-method'), alcoholCheck:getChipValue('tenko-pre-alcohol'),
+      alcoholValue:val('tenko-pre-alcohol-value'),
       drinking:getChipValue('tenko-pre-drink'), condition:val('tenko-pre-condition'),
       inspection:getChipValue('tenko-pre-inspection'), note:val('tenko-pre-note')
     },
     post:{
       datetime:val('tenko-post-datetime'), executor:val('tenko-post-executor'),
       method:getChipValue('tenko-post-method'), alcoholCheck:getChipValue('tenko-post-alcohol'),
+      alcoholValue:val('tenko-post-alcohol-value'),
       drinking:getChipValue('tenko-post-drink'), roadCondition:val('tenko-post-condition'),
       handover:val('tenko-post-handover'), note:val('tenko-post-note')
     },
     updatedAt: firebase.database.ServerValue.TIMESTAMP
   };
+  rememberVehicle(data.vehicle);
   dref('users/'+currentUser.uid+'/tenko/'+todayKey()).set(data)
     .then(function(){ toast('✅ 点呼を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
@@ -1401,8 +1735,8 @@ function loadGyomu(){
   dref('users/'+currentUser.uid+'/gyomu/'+todayKey()).once('value').then(function(snap){
     var v=snap.val();
     if(v){
-      document.getElementById('gyomu-driver').value=v.driver||'';
-      document.getElementById('gyomu-vehicle').value=v.vehicle||'';
+      document.getElementById('gyomu-driver').value=v.driver||(currentProfile&&currentProfile.name)||'';
+      document.getElementById('gyomu-vehicle').value=v.vehicle||(currentProfile&&currentProfile.vehicle)||'';
       document.getElementById('gyomu-start-place').value=v.startPlace||'';
       document.getElementById('gyomu-start-datetime').value=v.startDatetime||'';
       document.getElementById('gyomu-start-odo').value=v.startOdo||'';
@@ -1412,7 +1746,7 @@ function loadGyomu(){
       document.getElementById('gyomu-route').value=v.route||'';
     } else {
       document.getElementById('gyomu-driver').value=(currentProfile&&currentProfile.name)||'';
-      document.getElementById('gyomu-vehicle').value='';
+      document.getElementById('gyomu-vehicle').value=(currentProfile&&currentProfile.vehicle)||'';
       document.getElementById('gyomu-start-place').value='';
       document.getElementById('gyomu-start-datetime').value=nowLocalInput();
       document.getElementById('gyomu-start-odo').value='';
@@ -1432,6 +1766,7 @@ function saveGyomu(){
     route:val('gyomu-route'),
     updatedAt: firebase.database.ServerValue.TIMESTAMP
   };
+  rememberVehicle(data.vehicle);
   dref('users/'+currentUser.uid+'/gyomu/'+todayKey()).set(data)
     .then(function(){ toast('✅ 業務簿を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
@@ -1590,6 +1925,518 @@ function updatePendingBadge(){
       }
     }
   });
+}
+
+/* ══════════════════════ まとめ役：記入漏れチェック ══════════════════════
+   判定に使う実データ構造（既存の saveTenko/saveGyomu/saveVehicleCheck を確認済み）:
+   - users/{uid}/tenko/{YYYY-MM-DD} … { pre:{datetime,...}, post:{datetime,...}, updatedAt }
+     乗務前＝pre.datetime が入っているか／乗務後＝post.datetime が入っているか、で判定。
+     （保存ボタンは1つで pre/post 両方まとめて書き込むが、日付が空欄のままだと
+       その項目は未記入のまま保存されるので、値の有無で判定できる）
+   - users/{uid}/gyomu/{YYYY-MM-DD} … { startDatetime, endDatetime, ..., updatedAt }
+     保存ボタンを1回押せば updatedAt が入るので、それを「業務簿◯」の判定に使う。
+   - users/{uid}/vehicleCheck/{YYYY-MM-DD} … { item1..item15, updatedAt }
+     同様に updatedAt の有無で「車両点検◯」を判定。
+*/
+function daysInMonth(ym){
+  var y=Number(ym.slice(0,4)), m=Number(ym.slice(5,7));
+  return new Date(y, m, 0).getDate();
+}
+function monthRange(ym){
+  var last=daysInMonth(ym);
+  return { start: ym+'-01', end: ym+'-'+(last<10?'0'+last:String(last)) };
+}
+function getApprovedUsersForCheck(){
+  return dref('users').once('value').then(function(snap){
+    var uids=[]; snap.forEach(function(c){uids.push(c.key);});
+    return Promise.all(uids.map(function(uid){
+      return dref('users/'+uid+'/profile').once('value').then(function(s){
+        var p=s.val()||{};
+        return {uid:uid, name:p.name||'名称未設定', status:profileStatus(p)};
+      });
+    }));
+  }).then(function(rows){
+    return rows.filter(function(r){ return r.status==='approved'; });
+  });
+}
+function setFcDateToday(){
+  document.getElementById('fc-date').value = todayKey();
+  loadFillCheckDaily();
+}
+/* 今日（または選んだ日）の記入状況 */
+function loadFillCheckDaily(){
+  if(!isManager) return;
+  var dateInput=document.getElementById('fc-date');
+  if(!dateInput.value) dateInput.value = todayKey();
+  var d=dateInput.value;
+  var el=document.getElementById('fillcheck-list');
+  el.innerHTML='<div class="empty">読み込み中…</div>';
+  getApprovedUsersForCheck().then(function(users){
+    if(!users.length){ el.innerHTML='<div class="empty">承認済みメンバーがいません</div>'; return; }
+    return Promise.all(users.map(function(u){
+      return Promise.all([
+        dref('users/'+u.uid+'/tenko/'+d).once('value'),
+        dref('users/'+u.uid+'/gyomu/'+d).once('value'),
+        dref('users/'+u.uid+'/vehicleCheck/'+d).once('value')
+      ]).then(function(r){
+        var tenko=r[0].val(), gyomu=r[1].val(), vc=r[2].val();
+        return {
+          name:u.name,
+          pre: !!(tenko && tenko.pre && tenko.pre.datetime),
+          post: !!(tenko && tenko.post && tenko.post.datetime),
+          gyomu: !!(gyomu && gyomu.updatedAt),
+          vc: !!(vc && vc.updatedAt)
+        };
+      });
+    })).then(function(list){
+      el.innerHTML = list.map(function(r){
+        var allOk = r.pre && r.post && r.gyomu && r.vc;
+        return '<div class="fc-item '+(allOk?'fc-ok':'fc-ng')+'">'
+          +'<div class="fc-name">'+esc(r.name)+'<span class="fc-status '+(allOk?'ok':'ng')+'">'+(allOk?'✅ 揃っています':'⚠️ 未記入あり')+'</span></div>'
+          +'<div class="fc-pills">'
+            +'<span class="fc-pill '+(r.pre?'ok':'ng')+'">乗務前'+(r.pre?'◯':'✗')+'</span>'
+            +'<span class="fc-pill '+(r.post?'ok':'ng')+'">乗務後'+(r.post?'◯':'✗')+'</span>'
+            +'<span class="fc-pill '+(r.gyomu?'ok':'ng')+'">業務簿'+(r.gyomu?'◯':'✗')+'</span>'
+            +'<span class="fc-pill '+(r.vc?'ok':'ng')+'">車両点検'+(r.vc?'◯':'✗')+'</span>'
+          +'</div></div>';
+      }).join('');
+    });
+  }).catch(function(err){
+    el.innerHTML='<div class="empty" style="color:var(--bad)">⚠️ 読み込みに失敗しました: '+esc(err.message)+'</div>';
+  });
+}
+/* 月単位の記入率（対象月のみ範囲指定で読む＝全履歴は読まない） */
+function loadFillCheckMonthly(){
+  if(!isManager) return;
+  var monthInput=document.getElementById('fc-month');
+  if(!monthInput.value) monthInput.value = todayKey().slice(0,7);
+  var ym=monthInput.value;
+  var range=monthRange(ym);
+  var el=document.getElementById('fillcheck-monthly-list');
+  el.innerHTML='<div class="empty">読み込み中…</div>';
+  getApprovedUsersForCheck().then(function(users){
+    if(!users.length){ el.innerHTML='<div class="empty">承認済みメンバーがいません</div>'; return; }
+    return Promise.all(users.map(function(u){
+      return Promise.all([
+        dref('users/'+u.uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+        dref('users/'+u.uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+        dref('users/'+u.uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+      ]).then(function(r){
+        var tenkoSnap=r[0], gyomuSnap=r[1], vcSnap=r[2];
+        var tenkoDays=0, gyomuDays=0, vcDays=0;
+        var workedDays={};
+        tenkoSnap.forEach(function(c){
+          var v=c.val();
+          if(v && v.pre && v.pre.datetime && v.post && v.post.datetime){ tenkoDays++; }
+          if(v && v.updatedAt) workedDays[c.key]=true;
+        });
+        gyomuSnap.forEach(function(c){
+          var v=c.val();
+          if(v && v.updatedAt){ gyomuDays++; workedDays[c.key]=true; }
+        });
+        vcSnap.forEach(function(c){
+          var v=c.val();
+          if(v && v.updatedAt){ vcDays++; workedDays[c.key]=true; }
+        });
+        return {name:u.name, tenkoDays:tenkoDays, gyomuDays:gyomuDays, vcDays:vcDays, worked:Object.keys(workedDays).length};
+      });
+    })).then(function(list){
+      var mm=Number(ym.slice(5,7));
+      el.innerHTML = list.map(function(r){
+        return '<div class="fc-month-item"><div class="fc-month-name">'+esc(r.name)+' ・ '+mm+'月</div>'
+          +'<div class="fc-month-row"><span>稼働日数</span><b>'+r.worked+'日</b></div>'
+          +'<div class="fc-month-row"><span>点呼簿（乗務前・乗務後とも）</span><b>'+r.tenkoDays+' / '+r.worked+'日</b></div>'
+          +'<div class="fc-month-row"><span>業務簿</span><b>'+r.gyomuDays+' / '+r.worked+'日</b></div>'
+          +'<div class="fc-month-row"><span>車両点検</span><b>'+r.vcDays+' / '+r.worked+'日</b></div>'
+          +'</div>';
+      }).join('');
+    });
+  }).catch(function(err){
+    el.innerHTML='<div class="empty" style="color:var(--bad)">⚠️ 読み込みに失敗しました: '+esc(err.message)+'</div>';
+  });
+}
+
+/* ══════════════════════ 運行記録：ドライバー選択（まとめ役のみ。Excel出力・記入カレンダー共用） ══════════════════════
+   一般ドライバーは常に自分のデータのみを見る（セレクト自体を隠す）。
+   まとめ役は承認済みメンバーから選べる（getApprovedUsersForCheckは「まとめ役：記入漏れチェック」で定義済みのものを再利用）。 */
+var _driverListLoaded=false;
+function populateDriverSelects(){
+  if(!isManager) return;
+  document.getElementById('export-driver-row').style.display='block';
+  document.getElementById('cal-driver-select').style.display='block';
+  if(_driverListLoaded) return;
+  _driverListLoaded=true;
+  getApprovedUsersForCheck().then(function(users){
+    var optsHtml = users.map(function(u){
+      var label = u.name + (u.uid===currentUser.uid ? '（自分）' : '');
+      return '<option value="'+u.uid+'">'+esc(label)+'</option>';
+    }).join('');
+    ['export-driver-select','cal-driver-select'].forEach(function(id){
+      var sel=document.getElementById(id);
+      if(!sel) return;
+      sel.innerHTML = optsHtml;
+      sel.value = currentUser.uid;
+    });
+  }).catch(function(err){
+    console.warn('メンバー一覧の取得に失敗しました', err);
+  });
+}
+function exportTargetUid(){
+  if(!isManager) return currentUser.uid;
+  var sel=document.getElementById('export-driver-select');
+  return (sel && sel.value) || currentUser.uid;
+}
+function calTargetUid(){
+  if(!isManager) return currentUser.uid;
+  var sel=document.getElementById('cal-driver-select');
+  return (sel && sel.value) || currentUser.uid;
+}
+
+/* ══════════════════════ 記入カレンダー（自分／選択したメンバー） ══════════════════════
+   点呼簿(乗務前・乗務後とも)／業務簿／車両点検の3つの記入有無を、月間カレンダーで一目にする。
+   対象月のデータだけを範囲指定で読む（全履歴は読まない）。 */
+function loadCalendar(){
+  var monthInput=document.getElementById('cal-month');
+  if(!monthInput.value) monthInput.value = todayKey().slice(0,7);
+  var ym=monthInput.value;
+  var uid=calTargetUid();
+  var grid=document.getElementById('cal-grid');
+  var detail=document.getElementById('cal-detail');
+  detail.style.display='none';
+  grid.innerHTML='<div class="empty">読み込み中…</div>';
+  var range=monthRange(ym);
+  Promise.all([
+    dref('users/'+uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    dref('users/'+uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    dref('users/'+uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+  ]).then(function(r){
+    var tenkoByDate={}, gyomuByDate={}, vcByDate={};
+    r[0].forEach(function(c){ tenkoByDate[c.key]=c.val(); });
+    r[1].forEach(function(c){ gyomuByDate[c.key]=c.val(); });
+    r[2].forEach(function(c){ vcByDate[c.key]=c.val(); });
+    renderCalendar(ym, tenkoByDate, gyomuByDate, vcByDate);
+  }).catch(function(err){
+    grid.innerHTML='<div class="empty" style="color:var(--bad)">⚠️ 読み込みに失敗しました: '+esc(err.message)+'</div>';
+  });
+}
+var _calState=null;
+function renderCalendar(ym, tenkoByDate, gyomuByDate, vcByDate){
+  var y=Number(ym.slice(0,4)), m=Number(ym.slice(5,7));
+  var firstDow=new Date(y, m-1, 1).getDay();
+  var last=daysInMonth(ym);
+  _calState={ym:ym, tenko:tenkoByDate, gyomu:gyomuByDate, vc:vcByDate};
+  var html='';
+  for(var i=0;i<firstDow;i++){ html+='<div class="cal-day empty"></div>'; }
+  for(var d=1; d<=last; d++){
+    var dk=ym+'-'+(d<10?'0'+d:d);
+    var t=tenkoByDate[dk], g=gyomuByDate[dk], v=vcByDate[dk];
+    var preOk=!!(t && t.pre && t.pre.datetime), postOk=!!(t && t.post && t.post.datetime);
+    var tenkoOk = preOk && postOk;
+    var gyomuOk = !!(g && g.updatedAt);
+    var vcOk = !!(v && v.updatedAt);
+    var okCount=[tenkoOk,gyomuOk,vcOk].filter(Boolean).length;
+    var stateCls = okCount===3?'full':okCount===0?'':'partial';
+    html+='<div class="cal-day '+stateCls+'" id="cal-cell-'+dk+'" onclick="showCalDetail(\''+dk+'\')">'
+      +'<div class="cal-day-num">'+d+'</div>'
+      +'<div class="cal-dots">'
+        +'<span class="cal-dot'+(tenkoOk?' on':'')+'"></span>'
+        +'<span class="cal-dot'+(gyomuOk?' on':'')+'"></span>'
+        +'<span class="cal-dot'+(vcOk?' on':'')+'"></span>'
+      +'</div></div>';
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+function showCalDetail(dk){
+  if(!_calState) return;
+  document.querySelectorAll('.cal-day.selected').forEach(function(el){el.classList.remove('selected');});
+  var cell=document.getElementById('cal-cell-'+dk); if(cell) cell.classList.add('selected');
+  var t=_calState.tenko[dk]||{}, g=_calState.gyomu[dk], v=_calState.vc[dk];
+  var pre=t.pre||{}, post=t.post||{};
+  var preOk=!!pre.datetime, postOk=!!post.datetime;
+  var gyomuOk=!!(g && g.updatedAt), vcOk=!!(v && v.updatedAt);
+  var d=document.getElementById('cal-detail');
+  d.style.display='block';
+  d.innerHTML = '<div class="cal-detail-date">'+fmtYmdSlash(dk)+'</div>'
+    +'<div class="fc-pills">'
+      +'<span class="fc-pill '+(preOk?'ok':'ng')+'">乗務前'+(preOk?'◯':'✗')+'</span>'
+      +'<span class="fc-pill '+(postOk?'ok':'ng')+'">乗務後'+(postOk?'◯':'✗')+'</span>'
+      +'<span class="fc-pill '+(gyomuOk?'ok':'ng')+'">業務簿'+(gyomuOk?'◯':'✗')+'</span>'
+      +'<span class="fc-pill '+(vcOk?'ok':'ng')+'">車両点検'+(vcOk?'◯':'✗')+'</span>'
+    +'</div>';
+}
+
+/* ══════════════════════ 帳票Excel出力（点呼簿・業務簿・車両点検） ══════════════════════
+   ExcelJSはCDNから「出力ボタンを押したとき」だけ読み込む（初回表示を重くしない遅延ロード）。
+   CDNが落ちてもエラーメッセージを出すだけで、アプリ本体（点呼・業務簿入力など）は正常に動く。
+   1ブックに3シート構成（点呼記録簿／業務記録／日常点検記録簿）にまとめて1回のダウンロードにしている。
+   理由: 提出物として3つセットで扱うことが多く、個別に3回ボタンを押すより
+   「1回押せば全部そろう」方が使い勝手が良いため。 */
+var _exceljsLoadPromise=null;
+function loadExcelJS(){
+  if(window.ExcelJS) return Promise.resolve();
+  if(_exceljsLoadPromise) return _exceljsLoadPromise;
+  _exceljsLoadPromise=new Promise(function(resolve,reject){
+    var s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload=function(){ resolve(); };
+    s.onerror=function(){ _exceljsLoadPromise=null; reject(new Error('出力ライブラリの読み込みに失敗しました（通信環境をご確認ください）')); };
+    document.head.appendChild(s);
+  });
+  return _exceljsLoadPromise;
+}
+function setExportStatus(msg, cls){
+  var el=document.getElementById('export-status');
+  if(!el) return;
+  el.textContent=msg; el.className='export-status'+(cls?' '+cls:''); el.style.display='block';
+}
+
+/* ── 未実装項目のマッピング（ここ1箇所にまとめる）──
+   会社名・営業所名は exportLedgerExcel() 内で出力対象ドライバーの
+   profile.companyName / profile.officeName を読んでここにセットしている（未設定なら空欄）。
+   休憩/睡眠・荷待ち・荷役作業・業務の交替・事故等は、まだ入力欄がないため常に空欄で出す。
+   後からアプリ側に入力欄を追加したときは、ここ（と各シートのvalsの該当行）を直すだけで
+   出力側は自動的に埋まる。 */
+var LEDGER_BLANK = { companyName:'', officeName:'', restInfo:'', waitingCargo:'', cargoWork:'', handoverInfo:'', accidentInfo:'' };
+var VC_MARK={ok:'○', warn:'△', ng:'×'};
+function timeOnly(dtLocal){ var t=String(dtLocal||'').split('T'); return t[1]||''; }
+function fmtYmdSlash(dateStr){ return dateStr ? String(dateStr).replace(/-/g,'/') : ''; }
+function driverVehicleText(day, fallback){
+  var driver=(day.tenko&&day.tenko.driver)||(day.gyomu&&day.gyomu.driver)||(fallback&&fallback.name)||'';
+  var vehicle=(day.tenko&&day.tenko.vehicle)||(day.gyomu&&day.gyomu.vehicle)||(fallback&&fallback.vehicle)||'';
+  return vehicle ? (driver+'\n'+vehicle) : driver;
+}
+function ledgerDistance(day){
+  var g=day.gyomu; if(!g) return '';
+  if(!g.startOdo && !g.endOdo) return '';
+  return String(Math.max(0,(Number(g.endOdo)||0)-(Number(g.startOdo)||0)));
+}
+function borderAllCells(ws, r1,c1,r2,c2){
+  for(var r=r1;r<=r2;r++){
+    for(var c=c1;c<=c2;c++){
+      ws.getCell(r,c).border={top:{style:'thin'},left:{style:'thin'},bottom:{style:'thin'},right:{style:'thin'}};
+    }
+  }
+}
+function ledgerPageSetup(){
+  return {orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0,
+    margins:{left:0.3,right:0.3,top:0.4,bottom:0.4,header:0.2,footer:0.2}};
+}
+function ledgerHeaderRows(ws, cols, title, ym){
+  ws.pageSetup=ledgerPageSetup();
+  ws.mergeCells(1,1,1,cols);
+  ws.getCell(1,1).value=title; ws.getCell(1,1).font={size:14,bold:true}; ws.getCell(1,1).alignment={horizontal:'center'};
+  var half=Math.ceil(cols/2);
+  ws.mergeCells(2,1,2,half); ws.getCell(2,1).value='会社名: '+LEDGER_BLANK.companyName;
+  ws.mergeCells(2,half+1,2,cols); ws.getCell(2,half+1).value='営業所名: '+LEDGER_BLANK.officeName;
+  var r=monthRange(ym);
+  ws.mergeCells(3,1,3,cols);
+  ws.getCell(3,1).value='対象期間: '+fmtYmdSlash(r.start)+' 〜 '+fmtYmdSlash(r.end);
+  [2,3].forEach(function(row){ ws.getCell(row,1).font={size:10}; });
+}
+function ledgerNotes(ws, cols, startRow, lines){
+  lines.forEach(function(text,i){
+    var row=startRow+i;
+    ws.mergeCells(row,1,row,cols);
+    ws.getCell(row,1).value=text;
+    ws.getCell(row,1).font={size:9};
+  });
+}
+
+function buildTenkoSheet(wb, ym, days, fallback){
+  var ws=wb.addWorksheet('点呼記録簿');
+  var cols=18; // 日付(1) + 運転者/車両(1) + 業務前点呼(8) + 業務後点呼(8)
+  ledgerHeaderRows(ws, cols, '点呼記録簿', ym);
+
+  ws.mergeCells(4,1,5,1); ws.getCell(4,1).value='日付';
+  ws.mergeCells(4,2,5,2); ws.getCell(4,2).value='運転者名／\n車両番号';
+  ws.mergeCells(4,3,4,10); ws.getCell(4,3).value='業務前点呼';
+  ws.mergeCells(4,11,4,18); ws.getCell(4,11).value='業務後点呼';
+  var preHeads=['実施日時','点呼方法','点呼執行者','検知器使用の有無','酒気帯びの有無','疾病・疲労・睡眠不足等の状況','日常点検の状況','その他必要な指示事項'];
+  var postHeads=['実施日時','点呼方法','点呼執行者','検知器使用の有無','酒気帯びの有無','自動車・道路及び運行の状況','交替運転者に対する通告','その他必要な指示事項'];
+  preHeads.forEach(function(h,i){ ws.getCell(5,3+i).value=h; });
+  postHeads.forEach(function(h,i){ ws.getCell(5,11+i).value=h; });
+  for(var c=1;c<=cols;c++){
+    ws.getRow(4).getCell(c).alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    ws.getRow(5).getCell(c).alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    ws.getRow(4).getCell(c).font={bold:true,size:9};
+    ws.getRow(5).getCell(c).font={bold:true,size:8};
+  }
+
+  var startRow=6;
+  days.forEach(function(day,idx){
+    var row=startRow+idx;
+    var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
+    var vals=[
+      fmtYmdSlash(day.date), driverVehicleText(day, fallback),
+      timeOnly(pre.datetime), pre.method||'', pre.executor||'', pre.alcoholCheck||'', pre.drinking||'', pre.condition||'', pre.inspection||'', pre.note||'',
+      timeOnly(post.datetime), post.method||'', post.executor||'', post.alcoholCheck||'', post.drinking||'', post.roadCondition||'', post.handover||'', post.note||''
+    ];
+    vals.forEach(function(v,i){
+      var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
+      cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+    });
+  });
+  var endRow=startRow+Math.max(days.length,1)-1;
+  borderAllCells(ws,4,1,endRow,cols);
+  ledgerNotes(ws, cols, endRow+2, [
+    '注1: 1人で事業を行う場合は、対面点呼の欄に○を記入してください。',
+    '注2: この記録は1年間保存してください。'
+  ]);
+
+  ws.getColumn(1).width=10; ws.getColumn(2).width=14;
+  for(var cc=3; cc<=18; cc++){ ws.getColumn(cc).width = (cc===8||cc===9||cc===16||cc===17) ? 16 : 11; }
+  ws.getRow(4).height=18; ws.getRow(5).height=30;
+  days.forEach(function(_,idx){ ws.getRow(startRow+idx).height=26; });
+}
+
+function buildGyomuSheet(wb, ym, days, fallback){
+  var ws=wb.addWorksheet('業務記録');
+  var cols=15; // 日付(1)+運転者/車両(1)+出発(3)+到着(3)+運行の状況(7)
+  ledgerHeaderRows(ws, cols, '業務記録', ym);
+
+  ws.mergeCells(4,1,5,1); ws.getCell(4,1).value='日付';
+  ws.mergeCells(4,2,5,2); ws.getCell(4,2).value='運転者名／\n車両番号';
+  ws.mergeCells(4,3,4,5); ws.getCell(4,3).value='出発';
+  ws.mergeCells(4,6,4,8); ws.getCell(4,6).value='到着';
+  ws.mergeCells(4,9,4,15); ws.getCell(4,9).value='運行の状況';
+  var subHeads=['出発地','出発時刻','走行距離計(km)','到着地','到着時刻','走行距離計(km)',
+    '総走行距離(km)','主な経過地点','業務の交替(場所・日時)','休憩・睡眠(場所・時間)','事故・著しい運行の遅延(概要・原因)','荷待ち(30分以上)','荷役作業'];
+  subHeads.forEach(function(h,i){ ws.getCell(5,3+i).value=h; });
+  for(var c=1;c<=cols;c++){
+    ws.getRow(4).getCell(c).alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    ws.getRow(5).getCell(c).alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    ws.getRow(4).getCell(c).font={bold:true,size:9};
+    ws.getRow(5).getCell(c).font={bold:true,size:8};
+  }
+
+  var startRow=6;
+  days.forEach(function(day,idx){
+    var row=startRow+idx;
+    var g=day.gyomu||{};
+    var vals=[
+      fmtYmdSlash(day.date), driverVehicleText(day, fallback),
+      g.startPlace||'', timeOnly(g.startDatetime), g.startOdo?String(g.startOdo):'',
+      g.endPlace||'', timeOnly(g.endDatetime), g.endOdo?String(g.endOdo):'',
+      ledgerDistance(day), g.route||'', LEDGER_BLANK.handoverInfo, LEDGER_BLANK.restInfo, LEDGER_BLANK.accidentInfo, LEDGER_BLANK.waitingCargo, LEDGER_BLANK.cargoWork
+    ];
+    vals.forEach(function(v,i){
+      var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
+      cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+    });
+  });
+  var endRow=startRow+Math.max(days.length,1)-1;
+  borderAllCells(ws,4,1,endRow,cols);
+  ledgerNotes(ws, cols, endRow+2, [
+    '注1: 荷主・荷物の種類が変わるたびに行を分けて記録してください。',
+    '注2: 走行距離計は出発時・到着時のメーター値をそのまま記入してください。',
+    '注3: この記録は1年間保存してください。'
+  ]);
+
+  ws.getColumn(1).width=10; ws.getColumn(2).width=14;
+  var widths=[12,9,12, 12,9,12, 12,18,16,16,18,12,10];
+  widths.forEach(function(w,i){ ws.getColumn(3+i).width=w; });
+  ws.getRow(4).height=18; ws.getRow(5).height=30;
+  days.forEach(function(_,idx){ ws.getRow(startRow+idx).height=26; });
+}
+
+var VC_LABELS=['①ウォッシャ液量','②ブレーキ液量','③バッテリー液量','④冷却水量','⑤エンジンオイル量',
+  '⑥タイヤ空気圧','⑦タイヤ亀裂・損傷','⑧タイヤ溝深さ','⑨ランプ類',
+  '⑩ブレーキペダル','⑪パーキングブレーキ','⑫ウォッシャ噴射','⑬ワイパ状態','⑭エンジンかかり具合','⑮エンジン低速・加速'];
+function buildVehicleSheet(wb, ym, days, fallback){
+  var ws=wb.addWorksheet('日常点検記録簿');
+  var cols=18; // 日付(1)+運転者/車両(1)+15項目+備考(1)
+  ledgerHeaderRows(ws, cols, '日常点検記録簿', ym);
+
+  ws.mergeCells(4,1,5,1); ws.getCell(4,1).value='日付';
+  ws.mergeCells(4,2,5,2); ws.getCell(4,2).value='運転者名／\n車両番号';
+  VC_LABELS.forEach(function(h,i){ ws.mergeCells(4,3+i,5,3+i); ws.getCell(4,3+i).value=h; });
+  ws.mergeCells(4,18,5,18); ws.getCell(4,18).value='備考';
+  for(var c=1;c<=cols;c++){
+    ws.getRow(4).getCell(c).alignment={horizontal:'center',vertical:'middle',wrapText:true};
+    ws.getRow(4).getCell(c).font={bold:true,size:8};
+  }
+
+  var startRow=6;
+  days.forEach(function(day,idx){
+    var row=startRow+idx;
+    var v=day.vc||{};
+    ws.getCell(row,1).value=fmtYmdSlash(day.date);
+    ws.getCell(row,1).font={size:8}; ws.getCell(row,1).alignment={vertical:'middle',horizontal:'center'};
+    ws.getCell(row,2).value=driverVehicleText(day, fallback);
+    ws.getCell(row,2).font={size:8}; ws.getCell(row,2).alignment={vertical:'middle',wrapText:true};
+    for(var i=1;i<=15;i++){
+      var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
+      var cell=ws.getCell(row,2+i);
+      cell.value=mark; cell.font={size:10}; cell.alignment={horizontal:'center',vertical:'middle'};
+    }
+    var remarkCell=ws.getCell(row,18); remarkCell.value=''; remarkCell.font={size:8};
+  });
+  var endRow=startRow+Math.max(days.length,1)-1;
+  borderAllCells(ws,4,1,endRow,cols);
+  ledgerNotes(ws, cols, endRow+2, [
+    '注1: 異常なし＝○／要注意＝△／異常あり＝× で記入してください。',
+    '注2: 異常があった場合は備考欄に具体的な内容を記入してください。',
+    '注3: この記録は1年間保存してください。'
+  ]);
+
+  ws.getColumn(1).width=10; ws.getColumn(2).width=14;
+  for(var c2=3;c2<=17;c2++){ ws.getColumn(c2).width=9; }
+  ws.getColumn(18).width=16;
+  ws.getRow(4).height=34;
+  days.forEach(function(_,idx){ ws.getRow(startRow+idx).height=20; });
+}
+
+function exportLedgerExcel(){
+  var monthInput=document.getElementById('export-month');
+  if(!monthInput.value) monthInput.value = todayKey().slice(0,7);
+  var ym=monthInput.value;
+  var uid=exportTargetUid();
+  var btn=document.getElementById('export-btn');
+  btn.disabled=true;
+  setExportStatus('📚 出力ライブラリを読み込み中…','');
+  var range=monthRange(ym);
+  loadExcelJS().then(function(){
+    setExportStatus('📥 データを取得中…','');
+    return Promise.all([
+      dref('users/'+uid+'/profile').once('value'),
+      dref('users/'+uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+      dref('users/'+uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+      dref('users/'+uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+    ]);
+  }).then(function(r){
+    var profile=r[0].val()||{};
+    var tenkoByDate={}, gyomuByDate={}, vcByDate={};
+    r[1].forEach(function(c){ tenkoByDate[c.key]=c.val(); });
+    r[2].forEach(function(c){ gyomuByDate[c.key]=c.val(); });
+    r[3].forEach(function(c){ vcByDate[c.key]=c.val(); });
+    var last=daysInMonth(ym);
+    var days=[];
+    for(var d=1; d<=last; d++){
+      var dk=ym+'-'+(d<10?'0'+d:d);
+      days.push({date:dk, tenko:tenkoByDate[dk]||null, gyomu:gyomuByDate[dk]||null, vc:vcByDate[dk]||null});
+    }
+    var fallback={name:profile.name||'', vehicle:profile.vehicle||''};
+    /* 会社名・営業所名は出力対象ドライバー本人のユーザー情報設定から取る。未設定なら空欄のまま。 */
+    LEDGER_BLANK.companyName = profile.companyName||'';
+    LEDGER_BLANK.officeName = profile.officeName||'';
+    var wb=new ExcelJS.Workbook();
+    wb.creator='軽貨物まるごとアプリ';
+    buildTenkoSheet(wb, ym, days, fallback);
+    buildGyomuSheet(wb, ym, days, fallback);
+    buildVehicleSheet(wb, ym, days, fallback);
+    return wb.xlsx.writeBuffer();
+  }).then(function(buffer){
+    var blob=new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download='運行記録_'+ym+'.xlsx';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    setExportStatus('✅ ダウンロードしました','ok');
+  }).catch(function(err){
+    console.warn('Excel出力に失敗しました', err);
+    setExportStatus('⚠️ 出力に失敗しました: '+((err&&err.message)||'不明なエラー'),'err');
+  }).finally(function(){ btn.disabled=false; });
 }
 
 // テスト版バッジ表示(IS_STAGINGがtrueのときだけ)
