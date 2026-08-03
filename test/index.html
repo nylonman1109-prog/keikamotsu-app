@@ -79,6 +79,22 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .goal-bar-fill.red{background:linear-gradient(90deg,#EF5350,#C62828);}
 .goal-pct{text-align:right;font-size:11px;font-weight:800;color:var(--sub);margin-top:5px;}
 
+/* 今日の目標カード（月間目標からの逆算） */
+.today-goal-card{border-radius:16px;padding:14px 18px;margin-bottom:10px;box-shadow:var(--shadow);}
+.today-goal-main{font-size:17px;font-weight:800;line-height:1.4;}
+.today-goal-main b{font-size:24px;}
+.today-goal-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;vertical-align:middle;white-space:nowrap;}
+.today-goal-sub{font-size:11px;font-weight:700;margin-top:3px;opacity:.85;}
+.today-goal-card.state-ahead{background:var(--good-light);color:var(--good);}
+.today-goal-card.state-ahead .today-goal-badge{background:var(--good);color:white;}
+.today-goal-card.state-ontrack{background:var(--money-light);color:var(--money);}
+.today-goal-card.state-ontrack .today-goal-badge{background:var(--money);color:white;}
+.today-goal-card.state-behind{background:var(--warn-light);color:var(--warn);}
+.today-goal-card.state-behind .today-goal-badge{background:var(--warn);color:white;}
+.today-goal-card.state-done{background:linear-gradient(135deg,#2E7D32,#43A047);color:white;}
+.today-goal-card.state-warn{background:var(--bad-light);color:var(--bad);}
+.today-goal-note{font-size:10px;color:#90A4AE;text-align:center;margin:-4px 0 14px;}
+
 /* 月次グラフカード */
 .chart-card{background:var(--card);border-radius:16px;padding:16px 16px 10px;margin-bottom:14px;box-shadow:var(--shadow);}
 .chart-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
@@ -407,12 +423,19 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       </div>
     </div>
 
+    <!-- 今日の目標（月間目標からの逆算。配達個数タブの「目標設定」の数字が変わると自動で再計算されます） -->
+    <div class="today-goal-card state-ontrack" id="today-goal-card">
+      <div class="today-goal-main" id="today-goal-main">今日の目標　<b>100個</b></div>
+      <div class="today-goal-sub" id="today-goal-sub">今月あと0個 ／ 残り0日</div>
+    </div>
+
     <!-- 達成率ゲージ（配達個数画面で入力した数がここに反映されます） -->
     <div class="goal-card">
       <div class="goal-top"><span class="goal-title">🎯 今日の配達</span><span class="goal-num"><b id="goal-count">0</b> / <span id="goal-target">100</span> 個</span></div>
       <div class="goal-bar-track"><div class="goal-bar-fill yellow" id="goal-bar" style="width:0%"></div></div>
       <div class="goal-pct" id="goal-pct">達成率 0%</div>
     </div>
+    <div class="today-goal-note">※「稼働日」は配達個数を記録した日で数えています</div>
 
     <!-- 月次グラフ -->
     <div class="chart-card">
@@ -504,8 +527,10 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
     <div style="font-size:11px;color:var(--money);background:var(--money-light);border-radius:8px;padding:7px 10px;margin-top:10px;line-height:1.5;">🔗 この数はホームの達成率ゲージ・収入記録の個数欄に自動で反映されます</div>
     <div class="section-label" style="margin-left:2px">目標設定</div>
     <div class="section" style="padding:12px 14px">
-      <div class="q" style="margin-bottom:0"><div class="q-label">1日の目標個数</div><input type="text" inputmode="numeric" class="field" id="target-input" value="100" onchange="saveTarget()"></div>
+      <div class="q"><div class="q-label">1日の目標個数</div><input type="text" inputmode="numeric" class="field" id="target-input" value="100" onchange="saveTarget()"></div>
+      <div class="q" style="margin-bottom:0"><div class="q-label">今月の稼働予定日数</div><input type="text" inputmode="numeric" class="field" id="workdays-input" value="22" onchange="saveWorkDays()"></div>
     </div>
+    <div style="font-size:11px;color:var(--sub);margin:8px 2px 0;line-height:1.5;">🎯 この2つの数字から、ホームの「今日の目標」を自動で計算します（月間目標＝1日の目標×稼働予定日数）</div>
   </div>
 </div>
 
@@ -785,7 +810,7 @@ function sendApprovalRequestEmail(profile){
 var CATS=['燃料費（ガソリン）','車両費・修繕費','保険料','通信費','消耗品費','接待交際費','租税公課','地代家賃','雑費'];
 
 var currentUser=null, currentProfile=null, isManager=false;
-var countVal=0, goalTarget=100;
+var countVal=0, goalTarget=100, workDays=22;
 var chartData=[];
 var authMode='login';
 
@@ -929,7 +954,7 @@ function submitAuth(){
       var isMgr = MANAGER_EMAILS.indexOf(email.toLowerCase())>=0;
       var role = isMgr ? 'manager' : 'driver';
       var status = isMgr ? 'approved' : 'pending'; // まとめ役は自動承認。それ以外は承認待ちからスタート
-      var profile = {name:name, role:role, status:status, email:email, targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
+      var profile = {name:name, role:role, status:status, email:email, targetCount:100, workDaysPerMonth:22, createdAt:firebase.database.ServerValue.TIMESTAMP};
       return dref('users/'+cred.user.uid+'/profile').set(profile).then(function(){
         currentUser=cred.user;
         currentProfile=profile;
@@ -1007,7 +1032,7 @@ auth.onAuthStateChanged(function(user){
          二重に走っても最終的な内容は同じなので問題ない。 */
       var role = MANAGER_EMAILS.indexOf((user.email||'').toLowerCase())>=0 ? 'manager' : 'driver';
       var status = role==='manager' ? 'approved' : 'pending';
-      var fallbackProfile = {name:(user.email||'ドライバー').split('@')[0], role:role, status:status, email:user.email||'', targetCount:100, createdAt:firebase.database.ServerValue.TIMESTAMP};
+      var fallbackProfile = {name:(user.email||'ドライバー').split('@')[0], role:role, status:status, email:user.email||'', targetCount:100, workDaysPerMonth:22, createdAt:firebase.database.ServerValue.TIMESTAMP};
       dref('users/'+user.uid+'/profile').set(fallbackProfile).then(function(){
         currentProfile=fallbackProfile;
         dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
@@ -1027,6 +1052,7 @@ function finishInit(){
   var status = currentProfile.status || (isManager ? 'approved' : 'pending');
   currentProfile.status = status;
   goalTarget = currentProfile.targetCount || 100;
+  workDays = currentProfile.workDaysPerMonth || 22;
   document.getElementById('header-username').textContent = 'ログイン中: '+(currentProfile.name||currentUser.email)+'さん';
   document.getElementById('header-avatar').textContent = (currentProfile.name||'ド').charAt(0);
   document.getElementById('btn-team').style.display = isManager ? 'flex' : 'none';
@@ -1097,8 +1123,73 @@ function refreshHome(){
     document.getElementById('home-profit-val').textContent=yenSigned(profit);
   });
 
+  refreshTodayGoalCard(ym);
   loadChart();
   if(isManager) updatePendingBadge();
+}
+
+/* ── 今日の目標（月間目標からの逆算） ──
+   月間目標 = 1日の目標個数(targetCount) × 今月の稼働予定日数(workDaysPerMonth)
+   今日の目標 = (月間目標 − 今月これまでの累計個数) ÷ 残りの稼働日数（切り上げ）
+   「稼働日」の数え方: 配達個数(deliveries)を記録した日を稼働日と数える。
+   ※まとめ役の「記入漏れチェック」は点呼簿/業務簿/車両点検の記入有無で稼働日を数えているが、
+     これは安全書類の提出漏れを見るための定義。こちらは配達ペースの逆算が目的なので、
+     素直に配達個数の記録日を使う（値の再取得も少なく済む）。
+   「今月これまでの累計」「稼働日数」はどちらも“今日より前”の日だけを数える。
+   今日はこれから稼働する１日として「残りの稼働日数」側に含める。 */
+function computeTodayGoalStats(uid, ym){
+  return dref('users/'+uid+'/deliveries').once('value').then(function(snap){
+    var today = todayKey();
+    var cumulative = 0, workedDaysBeforeToday = 0;
+    snap.forEach(function(child){
+      var key = child.key;
+      if(key.slice(0,7) !== ym) return;
+      if(key >= today) return; // 今日・未来分はここには含めない
+      var v = child.val();
+      cumulative += Number(v && v.count) || 0;
+      workedDaysBeforeToday++;
+    });
+    return {cumulative:cumulative, workedDaysBeforeToday:workedDaysBeforeToday};
+  });
+}
+function refreshTodayGoalCard(ym){
+  computeTodayGoalStats(currentUser.uid, ym || monthKey(todayKey())).then(function(s){
+    renderTodayGoalCard(s.cumulative, s.workedDaysBeforeToday);
+  });
+}
+function renderTodayGoalCard(cumulative, workedDaysBeforeToday){
+  var el=document.getElementById('today-goal-card'); if(!el) return;
+  var mainEl=document.getElementById('today-goal-main');
+  var subEl=document.getElementById('today-goal-sub');
+
+  var perDay = goalTarget>0 ? goalTarget : 100;           // 1日の目標個数（未設定・不正値は既定100にフォールバック）
+  var totalWorkDays = workDays>0 ? workDays : 22;          // 今月の稼働予定日数（未設定・不正値は既定22にフォールバック）
+  var monthlyGoal = perDay * totalWorkDays;
+  var remainGoal = monthlyGoal - cumulative;                // 月間目標まであと何個か
+  var remainDays = totalWorkDays - workedDaysBeforeToday;   // 残りの稼働日数（今日を含む）
+
+  if(remainGoal<=0){
+    // 月間目標を既に達成 → お祝い表示。割り算はしない
+    el.className='today-goal-card state-done';
+    mainEl.innerHTML='🎉 今月の目標を達成済みです';
+    subEl.textContent='今月の実績 '+cumulative+'個 ／ 目標 '+monthlyGoal+'個';
+    return;
+  }
+  if(remainDays<=0){
+    // 稼働予定日数を使い切っている(または超過) → ゼロ除算を避け、注意表示のみ
+    el.className='today-goal-card state-warn';
+    mainEl.innerHTML='⚠️ 予定の稼働日数を超えています';
+    subEl.textContent='「今月の稼働予定日数」（配達個数タブ）の設定を見直してください';
+    return;
+  }
+  var todayTarget = Math.ceil(remainGoal/remainDays); // 小数は切り上げ
+  var stateClass, badge;
+  if(todayTarget<perDay){ stateClass='state-ahead'; badge='😌 貯金あり'; }
+  else if(todayTarget>perDay){ stateClass='state-behind'; badge='🔥 追い上げ'; }
+  else { stateClass='state-ontrack'; badge='👍 順調ペース'; }
+  el.className='today-goal-card '+stateClass;
+  mainEl.innerHTML='今日の目標　<b>'+todayTarget+'個</b>　<span class="today-goal-badge">'+badge+'</span>';
+  subEl.textContent='今月あと'+remainGoal+'個 ／ 残り'+remainDays+'日';
 }
 /* skipSelf=trueのときは「個数」画面の入力欄自体は書き換えない（入力中にカーソルが飛ぶのを防ぐ） */
 function syncCountViews(skipSelf){
@@ -1386,6 +1477,7 @@ function loadCountScreen(){
   var d=new Date();
   document.getElementById('count-date').textContent = d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
   document.getElementById('target-input').value = goalTarget;
+  document.getElementById('workdays-input').value = workDays;
   syncCountViews();
 }
 function saveCount(){
@@ -1399,7 +1491,17 @@ function saveTarget(){
   goalTarget=v;
   dref('users/'+currentUser.uid+'/profile/targetCount').set(v);
   syncCountViews();
+  refreshTodayGoalCard();
   toast('🎯 目標を更新しました');
+}
+/* 今月の稼働予定日数（「今日の目標」の逆算計算に使う。既定22日） */
+function saveWorkDays(){
+  var v=num(document.getElementById('workdays-input').value);
+  if(v<=0) v=22;
+  workDays=v;
+  dref('users/'+currentUser.uid+'/profile/workDaysPerMonth').set(v);
+  refreshTodayGoalCard();
+  toast('🎯 稼働予定日数を更新しました');
 }
 
 /* ══════════════════════ 運行記録：点呼簿 ══════════════════════ */
