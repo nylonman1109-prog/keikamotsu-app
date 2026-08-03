@@ -429,7 +429,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 <div id="home" class="screen">
   <div class="header">
     <div class="header-top">
-      <div class="header-user"><span class="header-avatar" id="header-avatar">−</span><span id="header-username">ログイン中…</span></div>
+      <div class="header-user" style="cursor:pointer" onclick="go('settings')"><span class="header-avatar" id="header-avatar">−</span><span id="header-username">ログイン中…</span><span style="font-size:10px;opacity:.75;margin-left:2px">▸</span></div>
       <div class="header-actions">
         <button class="header-manage" id="btn-team" onclick="go('team')" style="display:none">👥 全員を見る<span class="team-count-badge" id="team-badge"></span></button>
         <button class="header-manage" onclick="logout()">🚪</button>
@@ -484,6 +484,31 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
     </div>
 
     <div class="note">💡 レシート・配達個数・点呼簿・業務簿は下部タブ（レシート／個数／運行記録）から記録できます。</div>
+  </div>
+</div>
+
+<!-- ═══ ユーザー情報設定（ヘッダーの「ログイン中: ◯◯さん」をタップして開く） ═══ -->
+<div id="settings" class="screen">
+  <div class="subheader drive"><button class="btn-back" onclick="go('home')">‹</button><div><h1>ユーザー情報設定</h1><div class="subheader-sub">氏名・会社名などの登録内容</div></div></div>
+  <div class="form-body">
+    <div class="section">
+      <div class="section-title">🙍 基本情報</div>
+      <div class="q"><div class="q-label">氏名（表示名）</div><input type="text" class="field" id="settings-name" placeholder="例）北上奈世"></div>
+      <div style="font-size:11px;color:var(--sub);margin:-6px 2px 12px;line-height:1.5;">※帳票・ドライバー選択・管理画面の表示名として使われます</div>
+      <div class="q"><div class="q-label">会社名</div><input type="text" class="field" id="settings-company" placeholder="例）〇〇運送"></div>
+      <div class="q"><div class="q-label">営業所名</div><input type="text" class="field" id="settings-office" placeholder="例）〇〇営業所"></div>
+      <div style="font-size:11px;color:var(--sub);margin:-6px 2px 12px;line-height:1.5;">※点呼簿・業務簿・車両点検の帳票Excelのヘッダーに使われます</div>
+      <div class="q" style="margin-bottom:0"><div class="q-label">車両番号</div><input type="text" class="field" id="settings-vehicle" placeholder="例）八戸り3222"></div>
+      <div style="font-size:11px;color:var(--sub);margin:6px 2px 0;line-height:1.5;">※点呼簿の車両番号欄に自動で入る番号です</div>
+    </div>
+    <div class="section">
+      <div class="section-title">📧 ログイン情報</div>
+      <div class="q" style="margin-bottom:0"><div class="q-label">メールアドレス</div><input type="text" class="field" id="settings-email" disabled style="background:#EEEEEE;color:var(--sub);"></div>
+      <div style="font-size:11px;color:var(--sub);margin:6px 2px 0;line-height:1.5;">※認証に使うためここでは変更できません</div>
+    </div>
+    <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--money);" onclick="saveProfileSettings()">この内容を保存する</button>
+    <div id="settings-msg" style="display:none;font-size:12px;font-weight:700;margin-top:8px;text-align:center;"></div>
+    <div class="note" style="margin-top:14px;">🎯 1日の目標配達個数・今月の稼働予定日数は「配達個数」タブの<span class="profit-link" style="cursor:pointer" onclick="go('count')">目標設定へ ▸</span></div>
   </div>
 </div>
 
@@ -580,7 +605,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
         <div class="q-label">対象ドライバー</div>
         <select class="field" id="export-driver-select"></select>
       </div>
-      <div class="export-note">※会社名・営業所名・休憩/睡眠・荷待ち・荷役作業・業務の交替・事故等の欄は入力欄が未実装のため空欄で出力されます（走行距離は業務簿の記録から自動計算します）。</div>
+      <div class="export-note">※会社名・営業所名は「ユーザー情報設定」（ヘッダーの名前をタップ）で登録すると反映されます。休憩/睡眠・荷待ち・荷役作業・業務の交替・事故等の欄は入力欄が未実装のため空欄で出力されます（走行距離は業務簿の記録から自動計算します）。</div>
       <button class="export-btn" id="export-btn" onclick="exportLedgerExcel()">📥 点呼簿・業務簿・車両点検をダウンロード</button>
       <div class="export-status" id="export-status" style="display:none"></div>
     </div>
@@ -929,6 +954,7 @@ function go(id){
   else if(id==='income') loadIncomeScreen();
   else if(id==='expense') loadExpenseScreen();
   else if(id==='count') loadCountScreen();
+  else if(id==='settings') loadSettingsScreen();
   else if(id==='drive') loadDriveToday();
   else if(id==='report') loadReport();
   else if(id==='team'){ loadTeam(); loadFillCheckDaily(); loadFillCheckMonthly(); }
@@ -1573,6 +1599,41 @@ function saveWorkDays(){
   toast('🎯 稼働予定日数を更新しました');
 }
 
+/* ══════════════════════ ユーザー情報設定 ══════════════════════ */
+function loadSettingsScreen(){
+  if(!currentProfile) return;
+  document.getElementById('settings-name').value = currentProfile.name||'';
+  document.getElementById('settings-company').value = currentProfile.companyName||'';
+  document.getElementById('settings-office').value = currentProfile.officeName||'';
+  document.getElementById('settings-vehicle').value = currentProfile.vehicle||'';
+  document.getElementById('settings-email').value = currentProfile.email||(currentUser&&currentUser.email)||'';
+  var msg=document.getElementById('settings-msg'); msg.style.display='none';
+}
+/* role/status は本人による書き換えがルール上禁止(かつ触る必要がない)ため、
+   更新オブジェクトに一切含めない。update()なので指定したキー以外(role/status等)は
+   そのまま残る＝セキュリティルールの「role/status不変」条件を自然に満たす。 */
+function saveProfileSettings(){
+  var msg=document.getElementById('settings-msg');
+  var name=document.getElementById('settings-name').value.trim();
+  if(!name){
+    msg.style.color='var(--bad)'; msg.textContent='氏名を入力してください'; msg.style.display='block';
+    return;
+  }
+  var company=document.getElementById('settings-company').value.trim();
+  var office=document.getElementById('settings-office').value.trim();
+  var vehicle=document.getElementById('settings-vehicle').value.trim();
+  var updates={name:name, companyName:company, officeName:office, vehicle:vehicle};
+  dref('users/'+currentUser.uid+'/profile').update(updates).then(function(){
+    currentProfile.name=name; currentProfile.companyName=company; currentProfile.officeName=office; currentProfile.vehicle=vehicle;
+    document.getElementById('header-username').textContent = 'ログイン中: '+name+'さん';
+    document.getElementById('header-avatar').textContent = name.charAt(0);
+    msg.style.color='var(--good)'; msg.textContent='✅ 保存しました'; msg.style.display='block';
+    toast('✅ ユーザー情報を保存しました');
+  }).catch(function(err){
+    msg.style.color='var(--bad)'; msg.textContent='保存に失敗しました: '+err.message; msg.style.display='block';
+  });
+}
+
 /* ══════════════════════ 運行記録：点呼簿 ══════════════════════ */
 function loadDriveToday(){
   loadTenko();
@@ -2122,9 +2183,11 @@ function setExportStatus(msg, cls){
 }
 
 /* ── 未実装項目のマッピング（ここ1箇所にまとめる）──
-   会社名・営業所名・休憩/睡眠・荷待ち・荷役作業・業務の交替・事故等は、まだ入力欄がないため
-   常に空欄で出す。後からアプリ側に入力欄を追加したときは、ここ（と各シートのvalsの該当行）
-   を直すだけで出力側は自動的に埋まる。 */
+   会社名・営業所名は exportLedgerExcel() 内で出力対象ドライバーの
+   profile.companyName / profile.officeName を読んでここにセットしている（未設定なら空欄）。
+   休憩/睡眠・荷待ち・荷役作業・業務の交替・事故等は、まだ入力欄がないため常に空欄で出す。
+   後からアプリ側に入力欄を追加したときは、ここ（と各シートのvalsの該当行）を直すだけで
+   出力側は自動的に埋まる。 */
 var LEDGER_BLANK = { companyName:'', officeName:'', restInfo:'', waitingCargo:'', cargoWork:'', handoverInfo:'', accidentInfo:'' };
 var VC_MARK={ok:'○', warn:'△', ng:'×'};
 function timeOnly(dtLocal){ var t=String(dtLocal||'').split('T'); return t[1]||''; }
@@ -2345,6 +2408,9 @@ function exportLedgerExcel(){
       days.push({date:dk, tenko:tenkoByDate[dk]||null, gyomu:gyomuByDate[dk]||null, vc:vcByDate[dk]||null});
     }
     var fallback={name:profile.name||'', vehicle:profile.vehicle||''};
+    /* 会社名・営業所名は出力対象ドライバー本人のユーザー情報設定から取る。未設定なら空欄のまま。 */
+    LEDGER_BLANK.companyName = profile.companyName||'';
+    LEDGER_BLANK.officeName = profile.officeName||'';
     var wb=new ExcelJS.Workbook();
     wb.creator='軽貨物まるごとアプリ';
     buildTenkoSheet(wb, ym, days, fallback);
