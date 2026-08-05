@@ -1186,10 +1186,28 @@ auth.onAuthStateChanged(function(user){
       if(p){
         currentProfile=p;
         /* 承認制を追加する前に作られた古いプロフィール（emailフィールドが無い）を、
-           ここで一度だけ補完しておく。status/roleは書き換えない(ルール上も本人不可)ので安全。 */
+           ここで一度だけ補完しておく。 */
         if(!p.email && user.email){
           dref('users/'+user.uid+'/profile/email').set(user.email);
           currentProfile.email = user.email;
+        }
+        /* ★重要★ 承認制より前に作られたプロフィールには status が無い。
+           画面側は status が無ければ「まとめ役=承認済み」とみなして通してしまうが、
+           セキュリティルールは DB の実値 status==='approved' を要求するため、
+           点呼・業務簿・点検・収入・経費の保存が **すべて PERMISSION_DENIED になる**。
+           （画面は使えるのに保存だけ全部失敗する、という分かりにくい壊れ方をする）
+           status の書き込みは「DB上の role が manager の人」だけルールで許可されているので、
+           まとめ役はここで自分の status を補完できる。補完し終えてから画面を出す。 */
+        if(!p.status && p.role==='manager'){
+          dref('users/'+user.uid+'/profile/status').set('approved').then(function(){
+            currentProfile.status='approved';
+            dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
+            finishInit();
+          }).catch(function(err){
+            console.warn('statusの補完に失敗', err);
+            finishInit();
+          });
+          return;
         }
         dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
         finishInit();
