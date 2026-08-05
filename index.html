@@ -286,6 +286,53 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .export-status{font-size:12px;font-weight:700;margin-top:8px;text-align:center;}
 .export-status.err{color:var(--bad);}
 .export-status.ok{color:var(--good);}
+.export-btn.secondary{background:linear-gradient(135deg,#1565C0,#1E88E5);box-shadow:0 4px 12px rgba(21,101,192,.3);margin-top:8px;}
+
+/* 帳票プレビュー（表示して印刷／PDF保存） */
+.print-guide{font-size:11.5px;color:var(--sub);background:var(--money-light);border-radius:10px;padding:10px 12px;line-height:1.7;margin:12px 0;}
+.print-guide b{color:var(--money);}
+.preview-wrap{padding:0 14px 24px;}
+.preview-panel{display:none;overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:10px;}
+.preview-panel.active{display:block;}
+.print-doc-title{font-size:15px;font-weight:800;text-align:center;margin:2px 0 8px;white-space:nowrap;}
+.print-doc-meta{font-size:11px;color:var(--sub);margin:2px 4px;white-space:nowrap;}
+.print-table{border-collapse:collapse;width:max-content;min-width:100%;font-size:10.5px;margin-top:8px;}
+.print-table th,.print-table td{border:1px solid #333;padding:4px 6px;white-space:nowrap;text-align:center;}
+.print-table td.al-l{text-align:left;white-space:normal;}
+.print-table thead th{background:#ECEFF1;font-weight:800;font-size:10px;}
+.print-note{font-size:10px;color:var(--sub);margin:6px 4px 0;line-height:1.6;}
+
+@media print{
+  @page{ size:A4 landscape; margin:8mm; }
+  body{ padding-bottom:0!important; max-width:none!important; }
+  body *{ visibility:hidden; }
+  #ledger-preview,#ledger-preview *{ visibility:visible; }
+  #ledger-preview{ position:absolute; left:0; top:0; width:100%; min-height:0!important; display:block!important; }
+  #ledger-preview .no-print{ display:none!important; }
+  #ledger-preview .preview-panel{ display:none!important; box-shadow:none; padding:0; overflow:visible!important; }
+  #ledger-preview .preview-panel.active{ display:block!important; }
+  /* ── 用紙に必ず収める ──
+     表はそのままだとA4横(使える幅281mm≒1062px)に対して1.2〜1.5倍の幅があり、
+     何もしないと右端が切れて提出物にならない。
+     width:100% + table-layout:fixed で用紙幅にきっちり合わせ、
+     文字は折り返して縦に伸ばす（横に切れるより読める）。 */
+  .print-table{
+    font-size:7.5px; width:100%!important; table-layout:fixed;
+    border-collapse:collapse; page-break-inside:auto;
+  }
+  .print-table th,.print-table td{
+    border:1px solid #000; padding:1px 2px; line-height:1.25;
+    word-break:break-all; overflow-wrap:anywhere; white-space:normal;
+    vertical-align:top;
+  }
+  /* 1か月(31日)は1ページに収まらないことがある（元の紙様式も16行/24行版がある）。
+     複数ページになっても読めるよう、見出しを各ページに繰り返し、行が途中で割れないようにする。 */
+  .print-table thead{ display:table-header-group; }
+  .print-table tfoot{ display:table-footer-group; }
+  .print-table tr{ page-break-inside:avoid; break-inside:avoid; }
+  /* 印刷では背景色が飛ぶ環境があるため、色に頼らず罫線と文字で成立させる */
+  .print-table th{ background:transparent!important; font-weight:700; }
+}
 
 /* 記入カレンダー（自分／選択したメンバーの点呼簿・業務簿・車両点検） */
 .cal-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
@@ -615,6 +662,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       </div>
       <div class="export-note">※会社名・営業所名は「ユーザー情報設定」（ヘッダーの名前をタップ）で登録すると反映されます。休憩/睡眠・荷待ち・荷役作業・業務の交替・事故等の欄は入力欄が未実装のため空欄で出力されます（走行距離は業務簿の記録から自動計算します）。</div>
       <button class="export-btn" id="export-btn" onclick="exportLedgerExcel()">📥 点呼簿・業務簿・車両点検をダウンロード</button>
+      <button class="export-btn secondary" id="preview-open-btn" onclick="openLedgerPreview()">👁 表示して印刷／PDF保存</button>
       <div class="export-status" id="export-status" style="display:none"></div>
     </div>
 
@@ -773,6 +821,32 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
         <div class="cal-detail" id="cal-detail" style="display:none"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ 帳票プレビュー（表示して印刷／PDF保存） ═══
+     「運行記録」タブの「👁 表示して印刷／PDF保存」ボタンから開く。
+     対象月・対象ドライバーは運行記録タブの export-month / export-driver-select の値をそのまま使う。
+     点呼記録簿／業務記録／日常点検記録簿の3種類を上のタブで切り替える（.no-printなので印刷時は隠れる）。
+     印刷時に見せたい範囲は #ledger-preview .preview-panel.active だけ（297行付近の@media printのCSS参照）。 -->
+<div id="ledger-preview" class="screen">
+  <div class="subheader drive no-print"><button class="btn-back" onclick="go('drive')">‹</button><div><h1>帳票プレビュー</h1><div class="subheader-sub" id="preview-subtitle">対象期間を読み込み中…</div></div></div>
+  <div class="preview-wrap">
+    <div class="subtab-row no-print">
+      <button class="subtab-btn active" id="pv-tab-tenko" onclick="showPreviewPanel('tenko')">🖐️ 点呼記録簿</button>
+      <button class="subtab-btn" id="pv-tab-gyomu" onclick="showPreviewPanel('gyomu')">📋 業務記録</button>
+      <button class="subtab-btn" id="pv-tab-vehicle" onclick="showPreviewPanel('vehicle')">🔧 日常点検記録簿</button>
+    </div>
+
+    <button class="export-btn no-print" id="preview-print-btn" onclick="window.print()" style="margin-bottom:2px;">🖨 この帳票を印刷／PDF保存する</button>
+    <div class="print-guide no-print">
+      <b>📱 iPhone（Safari）の場合</b>：上のボタンを押すと印刷プレビューが開きます。プレビュー画像を指で広げると拡大表示になり、内容を確認できます。左下の共有ボタン▸「ファイルに保存」を選ぶとPDFとして保存できます。<br>
+      <b>🤖 Android（Chrome）の場合</b>：印刷プレビューが開いたら「送信先」の一覧から「PDFに保存」を選ぶとPDFとして保存できます。
+    </div>
+
+    <div class="preview-panel active" id="pv-panel-tenko"><div class="empty">読み込み中…</div></div>
+    <div class="preview-panel" id="pv-panel-gyomu"><div class="empty">読み込み中…</div></div>
+    <div class="preview-panel" id="pv-panel-vehicle"><div class="empty">読み込み中…</div></div>
   </div>
 </div>
 
@@ -1120,10 +1194,28 @@ auth.onAuthStateChanged(function(user){
       if(p){
         currentProfile=p;
         /* 承認制を追加する前に作られた古いプロフィール（emailフィールドが無い）を、
-           ここで一度だけ補完しておく。status/roleは書き換えない(ルール上も本人不可)ので安全。 */
+           ここで一度だけ補完しておく。 */
         if(!p.email && user.email){
           dref('users/'+user.uid+'/profile/email').set(user.email);
           currentProfile.email = user.email;
+        }
+        /* ★重要★ 承認制より前に作られたプロフィールには status が無い。
+           画面側は status が無ければ「まとめ役=承認済み」とみなして通してしまうが、
+           セキュリティルールは DB の実値 status==='approved' を要求するため、
+           点呼・業務簿・点検・収入・経費の保存が **すべて PERMISSION_DENIED になる**。
+           （画面は使えるのに保存だけ全部失敗する、という分かりにくい壊れ方をする）
+           status の書き込みは「DB上の role が manager の人」だけルールで許可されているので、
+           まとめ役はここで自分の status を補完できる。補完し終えてから画面を出す。 */
+        if(!p.status && p.role==='manager'){
+          dref('users/'+user.uid+'/profile/status').set('approved').then(function(){
+            currentProfile.status='approved';
+            dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
+            finishInit();
+          }).catch(function(err){
+            console.warn('statusの補完に失敗', err);
+            finishInit();
+          });
+          return;
         }
         dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
         finishInit();
@@ -2386,24 +2478,18 @@ function buildVehicleSheet(wb, ym, days, fallback){
   days.forEach(function(_,idx){ ws.getRow(startRow+idx).height=20; });
 }
 
-function exportLedgerExcel(){
-  var monthInput=document.getElementById('export-month');
-  if(!monthInput.value) monthInput.value = todayKey().slice(0,7);
-  var ym=monthInput.value;
-  var uid=exportTargetUid();
-  var btn=document.getElementById('export-btn');
-  btn.disabled=true;
-  setExportStatus('📚 出力ライブラリを読み込み中…','');
+/* ── データ取得の共通化 ──
+   点呼簿・業務簿・車両点検を対象月の範囲で読み、日付ごとにまとめて返す。
+   Excel出力(exportLedgerExcel)と帳票プレビュー(openLedgerPreview)の両方がこれを呼ぶ。
+   同じ取得処理を2箇所に書かない（後から入力欄を足したとき片方だけ直す事故を防ぐため）。 */
+function fetchLedgerData(uid, ym){
   var range=monthRange(ym);
-  loadExcelJS().then(function(){
-    setExportStatus('📥 データを取得中…','');
-    return Promise.all([
-      dref('users/'+uid+'/profile').once('value'),
-      dref('users/'+uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-      dref('users/'+uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-      dref('users/'+uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
-    ]);
-  }).then(function(r){
+  return Promise.all([
+    dref('users/'+uid+'/profile').once('value'),
+    dref('users/'+uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    dref('users/'+uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    dref('users/'+uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+  ]).then(function(r){
     var profile=r[0].val()||{};
     var tenkoByDate={}, gyomuByDate={}, vcByDate={};
     r[1].forEach(function(c){ tenkoByDate[c.key]=c.val(); });
@@ -2416,6 +2502,23 @@ function exportLedgerExcel(){
       days.push({date:dk, tenko:tenkoByDate[dk]||null, gyomu:gyomuByDate[dk]||null, vc:vcByDate[dk]||null});
     }
     var fallback={name:profile.name||'', vehicle:profile.vehicle||''};
+    return {profile:profile, days:days, fallback:fallback};
+  });
+}
+
+function exportLedgerExcel(){
+  var monthInput=document.getElementById('export-month');
+  if(!monthInput.value) monthInput.value = todayKey().slice(0,7);
+  var ym=monthInput.value;
+  var uid=exportTargetUid();
+  var btn=document.getElementById('export-btn');
+  btn.disabled=true;
+  setExportStatus('📚 出力ライブラリを読み込み中…','');
+  loadExcelJS().then(function(){
+    setExportStatus('📥 データを取得中…','');
+    return fetchLedgerData(uid, ym);
+  }).then(function(data){
+    var profile=data.profile, days=data.days, fallback=data.fallback;
     /* 会社名・営業所名は出力対象ドライバー本人のユーザー情報設定から取る。未設定なら空欄のまま。 */
     LEDGER_BLANK.companyName = profile.companyName||'';
     LEDGER_BLANK.officeName = profile.officeName||'';
@@ -2436,6 +2539,111 @@ function exportLedgerExcel(){
   }).catch(function(err){
     console.warn('Excel出力に失敗しました', err);
     setExportStatus('⚠️ 出力に失敗しました: '+((err&&err.message)||'不明なエラー'),'err');
+  }).finally(function(){ btn.disabled=false; });
+}
+
+/* ══════════════════════ 帳票プレビュー（表示して印刷／PDF保存） ══════════════════════
+   Excel出力(exportLedgerExcel)と同じ fetchLedgerData() を使い、画面表示用のHTMLテーブルを組み立てる。
+   対象月・対象ドライバーは運行記録タブの export-month / export-driver-select の値をそのまま使う。 */
+function ledgerMetaHtml(title, profile, ym){
+  var r=monthRange(ym);
+  return '<div class="print-doc-title">'+esc(title)+'</div>'
+    +'<div class="print-doc-meta">会社名: '+esc(profile.companyName||'')+'　／　営業所名: '+esc(profile.officeName||'')+'</div>'
+    +'<div class="print-doc-meta">対象期間: '+esc(fmtYmdSlash(r.start))+' 〜 '+esc(fmtYmdSlash(r.end))+'</div>';
+}
+function driverVehicleHtml(day, fallback){
+  return esc(driverVehicleText(day, fallback)).replace(/\n/g,'<br>');
+}
+function renderTenkoPreview(profile, ym, days, fallback){
+  var preHeads=['実施日時','点呼方法','点呼執行者','検知器使用の有無','酒気帯びの有無','疾病・疲労・睡眠不足等の状況','日常点検の状況','その他必要な指示事項'];
+  var postHeads=['実施日時','点呼方法','点呼執行者','検知器使用の有無','酒気帯びの有無','自動車・道路及び運行の状況','交替運転者に対する通告','その他必要な指示事項'];
+  var html=ledgerMetaHtml('点呼記録簿', profile, ym);
+  html+='<table class="print-table"><thead>'
+    +'<tr><th rowspan="2">日付</th><th rowspan="2">運転者名／<br>車両番号</th><th colspan="8">業務前点呼</th><th colspan="8">業務後点呼</th></tr>'
+    +'<tr>'+preHeads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+postHeads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr>'
+    +'</thead><tbody>';
+  days.forEach(function(day){
+    var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
+    html+='<tr>'
+      +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
+      +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
+      +'<td>'+esc(timeOnly(pre.datetime))+'</td><td>'+esc(pre.method||'')+'</td><td>'+esc(pre.executor||'')+'</td><td>'+esc(pre.alcoholCheck||'')+'</td><td>'+esc(pre.drinking||'')+'</td><td class="al-l">'+esc(pre.condition||'')+'</td><td>'+esc(pre.inspection||'')+'</td><td class="al-l">'+esc(pre.note||'')+'</td>'
+      +'<td>'+esc(timeOnly(post.datetime))+'</td><td>'+esc(post.method||'')+'</td><td>'+esc(post.executor||'')+'</td><td>'+esc(post.alcoholCheck||'')+'</td><td>'+esc(post.drinking||'')+'</td><td class="al-l">'+esc(post.roadCondition||'')+'</td><td class="al-l">'+esc(post.handover||'')+'</td><td class="al-l">'+esc(post.note||'')+'</td>'
+      +'</tr>';
+  });
+  html+='</tbody></table>';
+  html+='<div class="print-note">注1: 1人で事業を行う場合は、対面点呼の欄に○を記入してください。<br>注2: この記録は1年間保存してください。</div>';
+  return html;
+}
+function renderGyomuPreview(profile, ym, days, fallback){
+  var subHeads=['出発地','出発時刻','走行距離計(km)','到着地','到着時刻','走行距離計(km)',
+    '総走行距離(km)','主な経過地点','業務の交替(場所・日時)','休憩・睡眠(場所・時間)','事故・著しい運行の遅延(概要・原因)','荷待ち(30分以上)','荷役作業'];
+  var html=ledgerMetaHtml('業務記録', profile, ym);
+  html+='<table class="print-table"><thead>'
+    +'<tr><th rowspan="2">日付</th><th rowspan="2">運転者名／<br>車両番号</th><th colspan="3">出発</th><th colspan="3">到着</th><th colspan="7">運行の状況</th></tr>'
+    +'<tr>'+subHeads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr>'
+    +'</thead><tbody>';
+  days.forEach(function(day){
+    var g=day.gyomu||{};
+    html+='<tr>'
+      +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
+      +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
+      +'<td class="al-l">'+esc(g.startPlace||'')+'</td><td>'+esc(timeOnly(g.startDatetime))+'</td><td>'+esc(g.startOdo?String(g.startOdo):'')+'</td>'
+      +'<td class="al-l">'+esc(g.endPlace||'')+'</td><td>'+esc(timeOnly(g.endDatetime))+'</td><td>'+esc(g.endOdo?String(g.endOdo):'')+'</td>'
+      +'<td>'+esc(ledgerDistance(day))+'</td><td class="al-l">'+esc(g.route||'')+'</td>'
+      +'<td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td>'
+      +'</tr>';
+  });
+  html+='</tbody></table>';
+  html+='<div class="print-note">注1: 荷主・荷物の種類が変わるたびに行を分けて記録してください。<br>注2: 走行距離計は出発時・到着時のメーター値をそのまま記入してください。<br>注3: この記録は1年間保存してください。</div>';
+  return html;
+}
+function renderVehiclePreview(profile, ym, days, fallback){
+  var html=ledgerMetaHtml('日常点検記録簿', profile, ym);
+  html+='<table class="print-table"><thead><tr><th>日付</th><th>運転者名／<br>車両番号</th>'
+    +VC_LABELS.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')
+    +'<th>備考</th></tr></thead><tbody>';
+  days.forEach(function(day){
+    var v=day.vc||{};
+    html+='<tr><td>'+esc(fmtYmdSlash(day.date))+'</td><td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>';
+    for(var i=1;i<=15;i++){
+      var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
+      html+='<td>'+esc(mark)+'</td>';
+    }
+    html+='<td class="al-l"></td></tr>';
+  });
+  html+='</tbody></table>';
+  html+='<div class="print-note">注1: 異常なし＝○／要注意＝△／異常あり＝× で記入してください。<br>注2: 異常があった場合は備考欄に具体的な内容を記入してください。<br>注3: この記録は1年間保存してください。</div>';
+  return html;
+}
+function showPreviewPanel(kind){
+  ['tenko','gyomu','vehicle'].forEach(function(k){
+    document.getElementById('pv-tab-'+k).classList.toggle('active', k===kind);
+    document.getElementById('pv-panel-'+k).classList.toggle('active', k===kind);
+  });
+}
+function openLedgerPreview(){
+  var monthInput=document.getElementById('export-month');
+  if(!monthInput.value) monthInput.value = todayKey().slice(0,7);
+  var ym=monthInput.value;
+  var uid=exportTargetUid();
+  var btn=document.getElementById('preview-open-btn');
+  btn.disabled=true;
+  setExportStatus('📖 帳票を準備中…','');
+  fetchLedgerData(uid, ym).then(function(data){
+    var profile=data.profile, days=data.days, fallback=data.fallback;
+    var r=monthRange(ym);
+    document.getElementById('preview-subtitle').textContent = fmtYmdSlash(r.start)+' 〜 '+fmtYmdSlash(r.end);
+    document.getElementById('pv-panel-tenko').innerHTML = renderTenkoPreview(profile, ym, days, fallback);
+    document.getElementById('pv-panel-gyomu').innerHTML = renderGyomuPreview(profile, ym, days, fallback);
+    document.getElementById('pv-panel-vehicle').innerHTML = renderVehiclePreview(profile, ym, days, fallback);
+    showPreviewPanel('tenko');
+    go('ledger-preview');
+    setExportStatus('','');
+    document.getElementById('export-status').style.display='none';
+  }).catch(function(err){
+    console.warn('帳票プレビューの準備に失敗しました', err);
+    setExportStatus('⚠️ プレビューの準備に失敗しました: '+((err&&err.message)||'不明なエラー'),'err');
   }).finally(function(){ btn.disabled=false; });
 }
 
