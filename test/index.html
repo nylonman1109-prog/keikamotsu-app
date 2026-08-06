@@ -839,7 +839,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       <button class="subtab-btn" id="pv-tab-vehicle" onclick="showPreviewPanel('vehicle')">🔧 日常点検記録簿</button>
     </div>
 
-    <button class="export-btn no-print" id="preview-print-btn" onclick="window.print()" style="margin-bottom:2px;">🖨 この帳票を印刷／PDF保存する</button>
+    <button class="export-btn no-print" id="pdf-save-btn" onclick="generateLedgerPdf()" style="margin-bottom:8px;">📄 PDFで保存</button>
+    <div class="export-status no-print" id="pdf-status" style="display:none"></div>
+    <div class="print-guide no-print">
+      <b>📄 プリンターが無い方はこちら</b>：上の「PDFで保存」を押すと、点呼記録簿・業務記録・日常点検記録簿の3種類がまとまった1つのPDFファイルとして保存されます（スマホの「ファイル」アプリに入ります）。あとはコンビニのネットプリント（セブン-イレブン・ローソンなど）にアップロードして印刷したり、LINEやメールでパソコンに送って印刷したりできます。
+    </div>
+
+    <button class="export-btn secondary no-print" id="preview-print-btn" onclick="window.print()" style="margin-bottom:2px;margin-top:14px;">🖨 印刷する（プリンターをお持ちの場合）</button>
     <div class="print-guide no-print">
       <b>📱 iPhone（Safari）の場合</b>：上のボタンを押すと印刷プレビューが開きます。プレビュー画像を指で広げると拡大表示になり、内容を確認できます。左下の共有ボタン▸「ファイルに保存」を選ぶとPDFとして保存できます。<br>
       <b>🤖 Android（Chrome）の場合</b>：印刷プレビューが開いたら「送信先」の一覧から「PDFに保存」を選ぶとPDFとして保存できます。
@@ -2291,6 +2297,23 @@ function setExportStatus(msg, cls){
    出力側は自動的に埋まる。 */
 var LEDGER_BLANK = { companyName:'', officeName:'', restInfo:'', waitingCargo:'', cargoWork:'', handoverInfo:'', accidentInfo:'' };
 var VC_MARK={ok:'○', warn:'△', ng:'×'};
+/* 帳票プレビュー/PDF作成で最後に使ったデータ（PDF保存ボタンがファイル名等に使う）。
+   PDF保存ボタンは帳票プレビュー画面にしかなく、その画面は openLedgerPreview() が
+   必ず先にデータを入れてから表示するため、ボタンが押せる時点では必ず入っている。 */
+var _lastPreviewMeta = null;
+/* ── 「記録がある日だけ行を作る」判定 ──
+   点呼簿・業務簿・車両点検それぞれの保存処理(saveTenko/saveGyomu/saveVehicleCheck)は、
+   保存時に必ず updatedAt: firebase.database.ServerValue.TIMESTAMP を書き込む
+   （2025行付近のコメント、記入漏れチェック機能(2080行付近)も同じ updatedAt の有無で判定している）。
+   なので updatedAt があるかどうかが「その日その帳票に記録があるか」の正しい判定材料になる。
+   シートごとに別々のキー(tenko/gyomu/vc)を見ることで、点呼だけ入力した日に業務記録が
+   空行で出る、といったことを防ぐ。Excel出力・プレビューの両方がこの1関数を共有する。 */
+function filterRecordedDays(days, key){
+  return days.filter(function(d){
+    var rec = d[key];
+    return !!(rec && rec.updatedAt);
+  });
+}
 function timeOnly(dtLocal){ var t=String(dtLocal||'').split('T'); return t[1]||''; }
 function fmtYmdSlash(dateStr){ return dateStr ? String(dateStr).replace(/-/g,'/') : ''; }
 function driverVehicleText(day, fallback){
@@ -2334,6 +2357,14 @@ function ledgerNotes(ws, cols, startRow, lines){
     ws.getCell(row,1).font={size:9};
   });
 }
+/* 対象月に1件も記録が無いシート用：表の中身をゼロ行にせず、
+   分かりやすい1行メッセージにする（ヘッダーだけで表が不自然に空になるのを防ぐ） */
+function ledgerEmptyRow(ws, cols, row){
+  ws.mergeCells(row,1,row,cols);
+  ws.getCell(row,1).value='この月の記録はありません';
+  ws.getCell(row,1).font={size:10,italic:true,color:{argb:'FF888888'}};
+  ws.getCell(row,1).alignment={horizontal:'center',vertical:'middle'};
+}
 
 function buildTenkoSheet(wb, ym, days, fallback){
   var ws=wb.addWorksheet('点呼記録簿');
@@ -2356,19 +2387,23 @@ function buildTenkoSheet(wb, ym, days, fallback){
   }
 
   var startRow=6;
-  days.forEach(function(day,idx){
-    var row=startRow+idx;
-    var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
-    var vals=[
-      fmtYmdSlash(day.date), driverVehicleText(day, fallback),
-      timeOnly(pre.datetime), pre.method||'', pre.executor||'', pre.alcoholCheck||'', pre.drinking||'', pre.condition||'', pre.inspection||'', pre.note||'',
-      timeOnly(post.datetime), post.method||'', post.executor||'', post.alcoholCheck||'', post.drinking||'', post.roadCondition||'', post.handover||'', post.note||''
-    ];
-    vals.forEach(function(v,i){
-      var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
-      cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+  if(days.length===0){
+    ledgerEmptyRow(ws, cols, startRow);
+  } else {
+    days.forEach(function(day,idx){
+      var row=startRow+idx;
+      var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
+      var vals=[
+        fmtYmdSlash(day.date), driverVehicleText(day, fallback),
+        timeOnly(pre.datetime), pre.method||'', pre.executor||'', pre.alcoholCheck||'', pre.drinking||'', pre.condition||'', pre.inspection||'', pre.note||'',
+        timeOnly(post.datetime), post.method||'', post.executor||'', post.alcoholCheck||'', post.drinking||'', post.roadCondition||'', post.handover||'', post.note||''
+      ];
+      vals.forEach(function(v,i){
+        var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
+        cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+      });
     });
-  });
+  }
   var endRow=startRow+Math.max(days.length,1)-1;
   borderAllCells(ws,4,1,endRow,cols);
   ledgerNotes(ws, cols, endRow+2, [
@@ -2403,20 +2438,24 @@ function buildGyomuSheet(wb, ym, days, fallback){
   }
 
   var startRow=6;
-  days.forEach(function(day,idx){
-    var row=startRow+idx;
-    var g=day.gyomu||{};
-    var vals=[
-      fmtYmdSlash(day.date), driverVehicleText(day, fallback),
-      g.startPlace||'', timeOnly(g.startDatetime), g.startOdo?String(g.startOdo):'',
-      g.endPlace||'', timeOnly(g.endDatetime), g.endOdo?String(g.endOdo):'',
-      ledgerDistance(day), g.route||'', LEDGER_BLANK.handoverInfo, LEDGER_BLANK.restInfo, LEDGER_BLANK.accidentInfo, LEDGER_BLANK.waitingCargo, LEDGER_BLANK.cargoWork
-    ];
-    vals.forEach(function(v,i){
-      var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
-      cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+  if(days.length===0){
+    ledgerEmptyRow(ws, cols, startRow);
+  } else {
+    days.forEach(function(day,idx){
+      var row=startRow+idx;
+      var g=day.gyomu||{};
+      var vals=[
+        fmtYmdSlash(day.date), driverVehicleText(day, fallback),
+        g.startPlace||'', timeOnly(g.startDatetime), g.startOdo?String(g.startOdo):'',
+        g.endPlace||'', timeOnly(g.endDatetime), g.endOdo?String(g.endOdo):'',
+        ledgerDistance(day), g.route||'', LEDGER_BLANK.handoverInfo, LEDGER_BLANK.restInfo, LEDGER_BLANK.accidentInfo, LEDGER_BLANK.waitingCargo, LEDGER_BLANK.cargoWork
+      ];
+      vals.forEach(function(v,i){
+        var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
+        cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+      });
     });
-  });
+  }
   var endRow=startRow+Math.max(days.length,1)-1;
   borderAllCells(ws,4,1,endRow,cols);
   ledgerNotes(ws, cols, endRow+2, [
@@ -2450,20 +2489,24 @@ function buildVehicleSheet(wb, ym, days, fallback){
   }
 
   var startRow=6;
-  days.forEach(function(day,idx){
-    var row=startRow+idx;
-    var v=day.vc||{};
-    ws.getCell(row,1).value=fmtYmdSlash(day.date);
-    ws.getCell(row,1).font={size:8}; ws.getCell(row,1).alignment={vertical:'middle',horizontal:'center'};
-    ws.getCell(row,2).value=driverVehicleText(day, fallback);
-    ws.getCell(row,2).font={size:8}; ws.getCell(row,2).alignment={vertical:'middle',wrapText:true};
-    for(var i=1;i<=15;i++){
-      var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
-      var cell=ws.getCell(row,2+i);
-      cell.value=mark; cell.font={size:10}; cell.alignment={horizontal:'center',vertical:'middle'};
-    }
-    var remarkCell=ws.getCell(row,18); remarkCell.value=''; remarkCell.font={size:8};
-  });
+  if(days.length===0){
+    ledgerEmptyRow(ws, cols, startRow);
+  } else {
+    days.forEach(function(day,idx){
+      var row=startRow+idx;
+      var v=day.vc||{};
+      ws.getCell(row,1).value=fmtYmdSlash(day.date);
+      ws.getCell(row,1).font={size:8}; ws.getCell(row,1).alignment={vertical:'middle',horizontal:'center'};
+      ws.getCell(row,2).value=driverVehicleText(day, fallback);
+      ws.getCell(row,2).font={size:8}; ws.getCell(row,2).alignment={vertical:'middle',wrapText:true};
+      for(var i=1;i<=15;i++){
+        var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
+        var cell=ws.getCell(row,2+i);
+        cell.value=mark; cell.font={size:10}; cell.alignment={horizontal:'center',vertical:'middle'};
+      }
+      var remarkCell=ws.getCell(row,18); remarkCell.value=''; remarkCell.font={size:8};
+    });
+  }
   var endRow=startRow+Math.max(days.length,1)-1;
   borderAllCells(ws,4,1,endRow,cols);
   ledgerNotes(ws, cols, endRow+2, [
@@ -2525,9 +2568,9 @@ function exportLedgerExcel(){
     LEDGER_BLANK.officeName = profile.officeName||'';
     var wb=new ExcelJS.Workbook();
     wb.creator='軽貨物まるごとアプリ';
-    buildTenkoSheet(wb, ym, days, fallback);
-    buildGyomuSheet(wb, ym, days, fallback);
-    buildVehicleSheet(wb, ym, days, fallback);
+    buildTenkoSheet(wb, ym, filterRecordedDays(days,'tenko'), fallback);
+    buildGyomuSheet(wb, ym, filterRecordedDays(days,'gyomu'), fallback);
+    buildVehicleSheet(wb, ym, filterRecordedDays(days,'vc'), fallback);
     return wb.xlsx.writeBuffer();
   }).then(function(buffer){
     var blob=new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
@@ -2555,6 +2598,11 @@ function ledgerMetaHtml(title, profile, ym){
 function driverVehicleHtml(day, fallback){
   return esc(driverVehicleText(day, fallback)).replace(/\n/g,'<br>');
 }
+/* 対象月に1件も記録が無いときの表示（Excelのledgerと同じ考え方で、ヘッダーだけ残して
+   中身がゼロ行になって不自然にならないよう1行メッセージにする） */
+function ledgerEmptyRowHtml(colspan){
+  return '<tr><td class="al-l" colspan="'+colspan+'" style="text-align:center;color:#90A4AE;">この月の記録はありません</td></tr>';
+}
 function renderTenkoPreview(profile, ym, days, fallback){
   var preHeads=['実施日時','点呼方法','点呼執行者','検知器使用の有無','酒気帯びの有無','疾病・疲労・睡眠不足等の状況','日常点検の状況','その他必要な指示事項'];
   var postHeads=['実施日時','点呼方法','点呼執行者','検知器使用の有無','酒気帯びの有無','自動車・道路及び運行の状況','交替運転者に対する通告','その他必要な指示事項'];
@@ -2563,15 +2611,19 @@ function renderTenkoPreview(profile, ym, days, fallback){
     +'<tr><th rowspan="2">日付</th><th rowspan="2">運転者名／<br>車両番号</th><th colspan="8">業務前点呼</th><th colspan="8">業務後点呼</th></tr>'
     +'<tr>'+preHeads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+postHeads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr>'
     +'</thead><tbody>';
-  days.forEach(function(day){
-    var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
-    html+='<tr>'
-      +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
-      +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
-      +'<td>'+esc(timeOnly(pre.datetime))+'</td><td>'+esc(pre.method||'')+'</td><td>'+esc(pre.executor||'')+'</td><td>'+esc(pre.alcoholCheck||'')+'</td><td>'+esc(pre.drinking||'')+'</td><td class="al-l">'+esc(pre.condition||'')+'</td><td>'+esc(pre.inspection||'')+'</td><td class="al-l">'+esc(pre.note||'')+'</td>'
-      +'<td>'+esc(timeOnly(post.datetime))+'</td><td>'+esc(post.method||'')+'</td><td>'+esc(post.executor||'')+'</td><td>'+esc(post.alcoholCheck||'')+'</td><td>'+esc(post.drinking||'')+'</td><td class="al-l">'+esc(post.roadCondition||'')+'</td><td class="al-l">'+esc(post.handover||'')+'</td><td class="al-l">'+esc(post.note||'')+'</td>'
-      +'</tr>';
-  });
+  if(days.length===0){
+    html+=ledgerEmptyRowHtml(18);
+  } else {
+    days.forEach(function(day){
+      var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
+      html+='<tr>'
+        +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
+        +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
+        +'<td>'+esc(timeOnly(pre.datetime))+'</td><td>'+esc(pre.method||'')+'</td><td>'+esc(pre.executor||'')+'</td><td>'+esc(pre.alcoholCheck||'')+'</td><td>'+esc(pre.drinking||'')+'</td><td class="al-l">'+esc(pre.condition||'')+'</td><td>'+esc(pre.inspection||'')+'</td><td class="al-l">'+esc(pre.note||'')+'</td>'
+        +'<td>'+esc(timeOnly(post.datetime))+'</td><td>'+esc(post.method||'')+'</td><td>'+esc(post.executor||'')+'</td><td>'+esc(post.alcoholCheck||'')+'</td><td>'+esc(post.drinking||'')+'</td><td class="al-l">'+esc(post.roadCondition||'')+'</td><td class="al-l">'+esc(post.handover||'')+'</td><td class="al-l">'+esc(post.note||'')+'</td>'
+        +'</tr>';
+    });
+  }
   html+='</tbody></table>';
   html+='<div class="print-note">注1: 1人で事業を行う場合は、対面点呼の欄に○を記入してください。<br>注2: この記録は1年間保存してください。</div>';
   return html;
@@ -2584,17 +2636,21 @@ function renderGyomuPreview(profile, ym, days, fallback){
     +'<tr><th rowspan="2">日付</th><th rowspan="2">運転者名／<br>車両番号</th><th colspan="3">出発</th><th colspan="3">到着</th><th colspan="7">運行の状況</th></tr>'
     +'<tr>'+subHeads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr>'
     +'</thead><tbody>';
-  days.forEach(function(day){
-    var g=day.gyomu||{};
-    html+='<tr>'
-      +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
-      +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
-      +'<td class="al-l">'+esc(g.startPlace||'')+'</td><td>'+esc(timeOnly(g.startDatetime))+'</td><td>'+esc(g.startOdo?String(g.startOdo):'')+'</td>'
-      +'<td class="al-l">'+esc(g.endPlace||'')+'</td><td>'+esc(timeOnly(g.endDatetime))+'</td><td>'+esc(g.endOdo?String(g.endOdo):'')+'</td>'
-      +'<td>'+esc(ledgerDistance(day))+'</td><td class="al-l">'+esc(g.route||'')+'</td>'
-      +'<td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td>'
-      +'</tr>';
-  });
+  if(days.length===0){
+    html+=ledgerEmptyRowHtml(15);
+  } else {
+    days.forEach(function(day){
+      var g=day.gyomu||{};
+      html+='<tr>'
+        +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
+        +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
+        +'<td class="al-l">'+esc(g.startPlace||'')+'</td><td>'+esc(timeOnly(g.startDatetime))+'</td><td>'+esc(g.startOdo?String(g.startOdo):'')+'</td>'
+        +'<td class="al-l">'+esc(g.endPlace||'')+'</td><td>'+esc(timeOnly(g.endDatetime))+'</td><td>'+esc(g.endOdo?String(g.endOdo):'')+'</td>'
+        +'<td>'+esc(ledgerDistance(day))+'</td><td class="al-l">'+esc(g.route||'')+'</td>'
+        +'<td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td>'
+        +'</tr>';
+    });
+  }
   html+='</tbody></table>';
   html+='<div class="print-note">注1: 荷主・荷物の種類が変わるたびに行を分けて記録してください。<br>注2: 走行距離計は出発時・到着時のメーター値をそのまま記入してください。<br>注3: この記録は1年間保存してください。</div>';
   return html;
@@ -2604,15 +2660,19 @@ function renderVehiclePreview(profile, ym, days, fallback){
   html+='<table class="print-table"><thead><tr><th>日付</th><th>運転者名／<br>車両番号</th>'
     +VC_LABELS.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')
     +'<th>備考</th></tr></thead><tbody>';
-  days.forEach(function(day){
-    var v=day.vc||{};
-    html+='<tr><td>'+esc(fmtYmdSlash(day.date))+'</td><td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>';
-    for(var i=1;i<=15;i++){
-      var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
-      html+='<td>'+esc(mark)+'</td>';
-    }
-    html+='<td class="al-l"></td></tr>';
-  });
+  if(days.length===0){
+    html+=ledgerEmptyRowHtml(18);
+  } else {
+    days.forEach(function(day){
+      var v=day.vc||{};
+      html+='<tr><td>'+esc(fmtYmdSlash(day.date))+'</td><td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>';
+      for(var i=1;i<=15;i++){
+        var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
+        html+='<td>'+esc(mark)+'</td>';
+      }
+      html+='<td class="al-l"></td></tr>';
+    });
+  }
   html+='</tbody></table>';
   html+='<div class="print-note">注1: 異常なし＝○／要注意＝△／異常あり＝× で記入してください。<br>注2: 異常があった場合は備考欄に具体的な内容を記入してください。<br>注3: この記録は1年間保存してください。</div>';
   return html;
@@ -2635,17 +2695,149 @@ function openLedgerPreview(){
     var profile=data.profile, days=data.days, fallback=data.fallback;
     var r=monthRange(ym);
     document.getElementById('preview-subtitle').textContent = fmtYmdSlash(r.start)+' 〜 '+fmtYmdSlash(r.end);
-    document.getElementById('pv-panel-tenko').innerHTML = renderTenkoPreview(profile, ym, days, fallback);
-    document.getElementById('pv-panel-gyomu').innerHTML = renderGyomuPreview(profile, ym, days, fallback);
-    document.getElementById('pv-panel-vehicle').innerHTML = renderVehiclePreview(profile, ym, days, fallback);
+    document.getElementById('pv-panel-tenko').innerHTML = renderTenkoPreview(profile, ym, filterRecordedDays(days,'tenko'), fallback);
+    document.getElementById('pv-panel-gyomu').innerHTML = renderGyomuPreview(profile, ym, filterRecordedDays(days,'gyomu'), fallback);
+    document.getElementById('pv-panel-vehicle').innerHTML = renderVehiclePreview(profile, ym, filterRecordedDays(days,'vc'), fallback);
+    _lastPreviewMeta = {ym:ym, profile:profile, fallback:fallback};
     showPreviewPanel('tenko');
     go('ledger-preview');
     setExportStatus('','');
     document.getElementById('export-status').style.display='none';
+    var pdfStatusEl=document.getElementById('pdf-status');
+    if(pdfStatusEl) pdfStatusEl.style.display='none';
   }).catch(function(err){
     console.warn('帳票プレビューの準備に失敗しました', err);
     setExportStatus('⚠️ プレビューの準備に失敗しました: '+((err&&err.message)||'不明なエラー'),'err');
   }).finally(function(){ btn.disabled=false; });
+}
+
+/* ══════════════════════ 帳票PDF保存（html2canvas + jsPDF） ══════════════════════
+   プリンター/AirPrint非対応の環境でも、PDFファイルさえ手元にあれば
+   コンビニのネットプリント・PC転送・LINE/メール送付など、どの手段でも印刷できる。
+   これがPDF保存を作る一番の理由（window.print()はプリンターが無いと詰む）。
+
+   方式: 帳票プレビュー画面（openLedgerPreview()が組み立てた3つの.preview-panel）を
+   html2canvasで画像化し、jsPDFでA4横のPDFに貼り込む。
+   → 文字を画像として埋め込むので、jsPDF側で日本語フォントを埋め込む必要が無い
+     （日本語埋め込みフォントは数MBあり、スマホでは重く落ちやすいため意図的に避けている）。
+   html2canvas / jsPDF はExcelJSと同じく「押した時だけ」CDNから遅延ロードし、
+   読み込みに失敗してもアプリ本体は壊れない。
+
+   3種類（点呼簿・業務記録・日常点検記録簿）は提出物として3点セットで扱うことが多いため、
+   Excel出力と同じ考え方で1つのPDFに（表ごとにページを分けて）まとめている。 */
+var _pdfLibsPromise=null;
+function loadPdfLibs(){
+  if(window.jspdf && window.html2canvas) return Promise.resolve();
+  if(_pdfLibsPromise) return _pdfLibsPromise;
+  function loadScript(src){
+    return new Promise(function(resolve,reject){
+      var s=document.createElement('script');
+      s.src=src;
+      s.onload=function(){ resolve(); };
+      s.onerror=function(){ reject(new Error('通信環境をご確認ください')); };
+      document.head.appendChild(s);
+    });
+  }
+  _pdfLibsPromise=Promise.all([
+    loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js')
+  ]).catch(function(err){
+    _pdfLibsPromise=null;
+    throw new Error('PDF作成ライブラリの読み込みに失敗しました（'+(err&&err.message||'通信環境をご確認ください')+'）');
+  });
+  return _pdfLibsPromise;
+}
+function setPdfStatus(msg, cls){
+  var el=document.getElementById('pdf-status');
+  if(!el) return;
+  el.textContent=msg; el.className='export-status'+(cls?' '+cls:'');
+  el.style.display = msg ? 'block' : 'none';
+}
+function generateLedgerPdf(){
+  var btn=document.getElementById('pdf-save-btn');
+  if(!btn || btn.disabled) return;
+  var meta=_lastPreviewMeta;
+  if(!meta){
+    setPdfStatus('⚠️ 先に帳票を表示してください','err');
+    return;
+  }
+  var origLabel=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='⏳ 作成中…';
+  setPdfStatus('📚 PDF作成ライブラリを読み込み中…','');
+
+  var margin=8, pageW=297, pageH=210; // A4横(mm)
+  var usableW=pageW-margin*2, usableH=pageH-margin*2;
+  var pageUsed=false;
+
+  loadPdfLibs().then(function(){
+    setPdfStatus('🖨 帳票を画像化しています…（少し時間がかかります）','');
+    var jsPDFCtor=window.jspdf.jsPDF;
+    var pdf=new jsPDFCtor({orientation:'landscape',unit:'mm',format:'a4'});
+
+    function drawCanvas(canvas){
+      var pxPerMm=canvas.width/usableW;
+      var sliceHeightPx=Math.max(1,Math.floor(usableH*pxPerMm));
+      var offset=0;
+      while(offset<canvas.height){
+        var sliceH=Math.min(sliceHeightPx, canvas.height-offset);
+        var tmp=document.createElement('canvas');
+        tmp.width=canvas.width; tmp.height=sliceH;
+        var ctx=tmp.getContext('2d');
+        ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,tmp.width,tmp.height);
+        ctx.drawImage(canvas, 0, offset, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        /* JPEGで圧縮する（PNGだと表の罫線・文字が細かく複雑な画像になり、
+           数十MB単位に膨れてスマホでの保存・LINE/メール添付が非現実的になったため）。
+           背景は白で塗ってからJPEG化するので、文字の可読性はほぼ落ちずサイズだけ大幅に減る。 */
+        var dataUrl=tmp.toDataURL('image/jpeg',0.92);
+        if(pageUsed){ pdf.addPage('a4','landscape'); }
+        var sliceHmm=sliceH/pxPerMm;
+        pdf.addImage(dataUrl,'JPEG',margin,margin,usableW,sliceHmm);
+        pageUsed=true;
+        offset+=sliceH;
+      }
+    }
+
+    /* display:none の.preview-panelはhtml2canvasが正しく撮れない（0サイズになる）ため、
+       1枚ずつ showPreviewPanel() で画面上に表示してから撮る。終わったら元のタブ表示に戻す。 */
+    var kinds=['tenko','gyomu','vehicle'];
+    var originalActiveKind = kinds.filter(function(k){
+      var t=document.getElementById('pv-tab-'+k);
+      return t && t.classList.contains('active');
+    })[0] || 'tenko';
+    var chain=Promise.resolve();
+    kinds.forEach(function(kind){
+      chain=chain.then(function(){
+        showPreviewPanel(kind);
+        var el=document.getElementById('pv-panel-'+kind);
+        if(!el) return null;
+        /* .preview-panel は overflow-x:auto で表(.print-table)が横にはみ出す前提のため、
+           width/height/windowWidth を明示して scrollWidth 全体を描画対象にする
+           （指定しないとスクロール分が切れて右端が欠けたPDFになる）。 */
+        return window.html2canvas(el, {
+          scale:2, backgroundColor:'#ffffff',
+          width: el.scrollWidth, height: el.scrollHeight,
+          windowWidth: el.scrollWidth, windowHeight: el.scrollHeight
+        });
+      }).then(function(canvas){
+        if(canvas) drawCanvas(canvas);
+      });
+    });
+    return chain.then(function(){
+      showPreviewPanel(originalActiveKind);
+      return pdf;
+    });
+  }).then(function(pdf){
+    var driverName=(meta.profile&&meta.profile.name)||(meta.fallback&&meta.fallback.name)||'';
+    var fname='運行記録帳票_'+meta.ym+(driverName?('_'+driverName):'')+'.pdf';
+    pdf.save(fname);
+    setPdfStatus('✅ PDFを保存しました。「ファイル」アプリなどから確認できます','ok');
+  }).catch(function(err){
+    console.warn('PDF作成に失敗しました', err);
+    setPdfStatus('⚠️ PDF作成に失敗しました: '+((err&&err.message)||'不明なエラー'),'err');
+  }).finally(function(){
+    btn.disabled=false; btn.textContent=origLabel;
+  });
 }
 
 // テスト版バッジ表示(IS_STAGINGがtrueのときだけ)
