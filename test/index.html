@@ -1011,6 +1011,16 @@ function sendApprovalRequestEmail(profile){
 
 var CATS=['燃料費（ガソリン）','車両費・修繕費','保険料','通信費','消耗品費','接待交際費','租税公課','地代家賃','雑費'];
 
+/* OCRで読んだ行を「最初から経費ONにしてよいか」を科目で判定する。
+   ・仕事でしか買わない科目（軽油・タイヤ・軍手など）→ ON。軽油だけのレシートはタップ不要になる。
+   ・飲食など私用が混ざりうる科目（雑費・接待交際費）→ OFF。
+     外し忘れて経費を多く計上するより、取りこぼす方が安全なため。
+   ・科目が未選択/不明のときも OFF（本人に確認させる）。 */
+var BUSINESS_CATS=['燃料費（ガソリン）','車両費・修繕費','保険料','通信費','消耗品費','租税公課','地代家賃'];
+function isBusinessCategory(cat){
+  return BUSINESS_CATS.indexOf(String(cat||'').trim()) >= 0;
+}
+
 /* ══════════════════════ レシートAI読み取り（Gemini OCR） ══════════════════════
    参考: tools/OCR移植キット.md ／ projects/軽貨物まるごとアプリ/OCR設定.md
    APIキーはFirebaseに置かず、この端末のlocalStorageにのみ保存する。 */
@@ -1268,16 +1278,20 @@ function applyOcrRowsToReceipt(rows){
     showOcrError('レシートの内容を読み取れませんでした。ピントを合わせて明るい場所でもう一度お試しください');
     return;
   }
-  var lowCount=0;
+  var lowCount=0, offCount=0;
   rows.forEach(function(r){
-    addLine(r.item, r.a, r.rate, r.cat, true, r.conf);
+    var picked=isBusinessCategory(r.cat);   // ★科目で「経費ON/OFF」を自動判定
+    if(!picked) offCount++;
+    addLine(r.item, r.a, r.rate, r.cat, picked, r.conf);
     if(r.conf==='low') lowCount++;
   });
   calcExpTotal();
+  /* 経費OFFで入った行があることは必ず伝える。黙ってOFFにすると経費の取りこぼしに気づけないため。 */
+  var offNote = offCount>0 ? ('　※'+offCount+'件は私用の可能性があるため経費オフで入れています（仕事の分はオンにしてください）') : '';
   if(lowCount>0){
-    showOcrToast('ocr-warn', '⚠️ 読み取りました（'+rows.length+'件）。要確認 '+lowCount+'件（オレンジの行は内容をよく確認してください）');
+    showOcrToast('ocr-warn', '⚠️ 読み取りました（'+rows.length+'件）。要確認 '+lowCount+'件（オレンジの行は内容をよく確認してください）'+offNote);
   } else {
-    showOcrToast('', '✅ 読み取りました（'+rows.length+'件）。内容と税率を確認してください。');
+    showOcrToast('', '✅ 読み取りました（'+rows.length+'件）。内容と税率を確認してください。'+offNote);
   }
   document.getElementById('scan-tag').style.display='inline';
   toast('📷 レシートを読み取りました（'+rows.length+'件）');
