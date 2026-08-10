@@ -650,8 +650,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
 <!-- ═══ 配達個数 ═══ -->
 <div id="count" class="screen">
-  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>配達個数</h1><div class="subheader-sub">今日の完了数を記録</div></div></div>
+  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>配達個数</h1><div class="subheader-sub">日付を選んで完了数を記録</div></div></div>
   <div class="form-body">
+    <!-- 日付を選べるようにする。以前は「今日」固定で、過去の日を入れても today に上書き保存されていた -->
+    <div class="fc-datebar">
+      <input type="date" class="field" id="count-date-input" onchange="onCountDateChange()">
+      <button type="button" class="fc-today-btn" onclick="countDateToday()">今日</button>
+    </div>
     <div class="count-input-card">
       <div class="q-label" style="color:var(--sub)" id="count-date">今日</div>
       <input type="text" inputmode="numeric" pattern="[0-9]*" class="count-big-input" id="count-val" value="0" oninput="onCountInput()" onblur="onCountBlur()">
@@ -1299,6 +1304,11 @@ function applyOcrRowsToReceipt(rows){
 
 var currentUser=null, currentProfile=null, isManager=false;
 var countVal=0, goalTarget=100, workDays=22;
+/* 配達個数画面で編集中の日付。既定は今日だが、過去の日も選んで記録できる。
+   ホームのゲージと収入画面は「今日」の数を使うので、
+   過去日を編集している間はそれらを書き換えない（countDate と今日を比べて判断する）。 */
+var countDate = null;
+function isCountDateToday(){ return !countDate || countDate===todayKey(); }
 var chartData=[];
 var authMode='login';
 
@@ -1742,6 +1752,9 @@ function syncCountViews(skipSelf){
     var left=Math.max(0, goalTarget-countVal);
     remain.textContent='目標 '+goalTarget+'個 ・ あと'+left+'個';
   }
+  /* ホームの達成率ゲージは「今日の配達」を表すもの。
+     過去日を編集している間は書き換えない（今日の実績が過去日の数で上書きされるのを防ぐ）。 */
+  if(!isCountDateToday()) return;
   var pct = goalTarget>0 ? Math.min(999, Math.round(countVal/goalTarget*100)) : 0;
   var gc=document.getElementById('goal-count'); if(gc) gc.textContent=countVal;
   var gt=document.getElementById('goal-target'); if(gt) gt.textContent=goalTarget;
@@ -1849,7 +1862,16 @@ function showBarDetail(i){
 /* ══════════════════════ 収入 ══════════════════════ */
 function loadIncomeScreen(){
   document.getElementById('in-date').value = todayKey();
-  document.getElementById('in-count').value = countVal || 0;
+  /* 個数欄は必ず「今日」の記録から入れる。
+     個数画面で過去日を編集した直後でも、その数が混ざらないようにするため。 */
+  document.getElementById('in-count').value = 0;
+  if(currentUser){
+    dref('users/'+currentUser.uid+'/deliveries/'+todayKey()).once('value').then(function(snap){
+      var v=snap.val();
+      document.getElementById('in-count').value=(v && v.count)||0;
+      calcIncomeLive();
+    });
+  }
   calcIncomeLive();
   loadIncomeList();
 }
@@ -2003,15 +2025,43 @@ function loadExpenseList(){
 
 /* ══════════════════════ 配達個数 ══════════════════════ */
 function loadCountScreen(){
-  var d=new Date();
-  document.getElementById('count-date').textContent = d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+  /* 画面を開くたび今日に戻す（前回選んだ過去日のまま記録してしまうのを防ぐ） */
+  countDate = todayKey();
+  document.getElementById('count-date-input').value = countDate;
   document.getElementById('target-input').value = goalTarget;
   document.getElementById('workdays-input').value = workDays;
-  syncCountViews();
+  loadCountForDate();
+}
+/* 選んだ日付に保存済みの個数を読み込んで画面に出す */
+function loadCountForDate(){
+  var d=new Date(countDate+'T00:00:00');
+  var label=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+  document.getElementById('count-date').textContent = label + (isCountDateToday()?'（今日）':'');
+  if(!currentUser){ syncCountViews(); return; }
+  dref('users/'+currentUser.uid+'/deliveries/'+countDate).once('value').then(function(snap){
+    var v=snap.val();
+    countVal=(v && v.count)||0;
+    syncCountViews();
+  });
+}
+function onCountDateChange(){
+  var v=document.getElementById('count-date-input').value;
+  if(!v) return;                       // 日付を空にされたら前の日付を保つ
+  countDate=v;
+  loadCountForDate();
+}
+function countDateToday(){
+  countDate=todayKey();
+  document.getElementById('count-date-input').value=countDate;
+  loadCountForDate();
 }
 function saveCount(){
-  dref('users/'+currentUser.uid+'/deliveries/'+todayKey()).set({count:countVal, updatedAt:firebase.database.ServerValue.TIMESTAMP})
-    .then(function(){ toast('✅ 今日の個数を記録しました'); })
+  var target = countDate || todayKey();
+  dref('users/'+currentUser.uid+'/deliveries/'+target).set({count:countVal, updatedAt:firebase.database.ServerValue.TIMESTAMP})
+    .then(function(){
+      toast('✅ '+(target===todayKey()?'今日':target.slice(5).replace('-','/'))+'の個数を記録しました');
+      loadChart();                     // 棒グラフをその場で更新する
+    })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
 }
 function saveTarget(){
