@@ -1,0 +1,68 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager'",
+
+      "$uid": {
+
+        "profile": {
+          ".read": "auth != null && auth.uid === $uid",
+
+          ".write": "auth != null && ( (auth.uid === $uid && ( (!data.exists() && (newData.child('role').val() === 'driver' || (newData.child('role').val() === 'manager' && auth.token.email === 'nylonman1109@gmail.com')) && (newData.child('status').val() === 'pending' || (newData.child('status').val() === 'approved' && auth.token.email === 'nylonman1109@gmail.com')) && !newData.hasChild('editUnlockUntil')) || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val() && newData.child('editUnlockUntil').val() === data.child('editUnlockUntil').val()) )) || root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager' )",
+
+          "status": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager'"
+          },
+          "role": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager'"
+          },
+          "editUnlockUntil": {
+            ".write": "auth != null && root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager'"
+          }
+        },
+
+        "deliveries":   { ".read": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+        "income":       { ".read": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+        "expenses":     { ".read": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+        "tenko":        { ".read": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+        "gyomu":        { ".read": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+        "vehicleCheck": { ".read": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('users').child($uid).child('profile').child('status').val() === 'approved'" }
+      }
+    },
+
+    "staging": {
+      "users": {
+        ".read": "auth != null && root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager'",
+
+        "$uid": {
+
+          "profile": {
+            ".read": "auth != null && auth.uid === $uid",
+
+            ".write": "auth != null && ( (auth.uid === $uid && ( (!data.exists() && (newData.child('role').val() === 'driver' || (newData.child('role').val() === 'manager' && auth.token.email === 'nylonman1109@gmail.com')) && (newData.child('status').val() === 'pending' || (newData.child('status').val() === 'approved' && auth.token.email === 'nylonman1109@gmail.com')) && !newData.hasChild('editUnlockUntil')) || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val() && newData.child('editUnlockUntil').val() === data.child('editUnlockUntil').val()) )) || root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' )",
+
+            "status": {
+              ".write": "auth != null && root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager'"
+            },
+            "role": {
+              ".write": "auth != null && root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager'"
+            },
+            "editUnlockUntil": {
+              ".write": "auth != null && root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager'"
+            }
+          },
+
+          "deliveries":   { ".read": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+          "income":       { ".read": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+          "expenses":     { ".read": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+          "tenko":        { ".read": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+          "gyomu":        { ".read": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'" },
+          "vehicleCheck": { ".read": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'", ".write": "auth != null && auth.uid === $uid && root.child('staging').child('users').child($uid).child('profile').child('status').val() === 'approved'" }
+        }
+      }
+    },
+
+    ".read": false,
+    ".write": false
+  }
+}
