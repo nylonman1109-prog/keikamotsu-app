@@ -6,7 +6,7 @@
 
 // バージョンを上げると古いキャッシュが自動で破棄される(下のactivate参照)。
 // ★本番にリリースするたびに、この番号を必ず上げること(上げ忘れると同僚のスマホに更新が配られない)。
-var CACHE_VERSION = 'keikamotsu-shell-v8';
+var CACHE_VERSION = 'keikamotsu-shell-v9';
 
 // self.location基準の相対パス解決。GitHub Pagesのサブパス(/keikamotsu-app/)配下でも
 // ローカル直下でも、そのままの相対位置を指すようにする。

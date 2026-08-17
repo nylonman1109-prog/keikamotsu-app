@@ -224,7 +224,12 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .exp-total-label{font-size:12px;color:var(--sub);font-weight:700;}
 .exp-total-val{font-size:20px;font-weight:800;color:var(--expense);}
 
-.scan-toast{background:var(--good-light);border:1px solid #A5D6A7;color:var(--good);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.scan-toast{background:var(--good-light);border:1px solid #A5D6A7;color:var(--good);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.scan-toast.ocr-warn{background:var(--warn-light);border-color:#FFCC80;color:var(--warn);}
+.scan-toast.ocr-error{background:var(--bad-light);border-color:#EF9A9A;color:var(--bad);}
+.ocr-retry-btn{margin-left:auto;background:var(--bad);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:11px;font-weight:800;cursor:pointer;}
+/* AIの読み取りに自信が無い行（要確認）を目立たせる：背景色＋左の縦線 */
+.receipt-line.low-conf{background:var(--warn-light);border-left:4px solid var(--warn);padding-left:6px;margin-left:-6px;border-radius:0 8px 8px 0;}
 
 /* リスト */
 .list-item{background:var(--card);border-radius:12px;padding:11px 13px;margin-bottom:8px;box-shadow:var(--shadow);display:flex;justify-content:space-between;align-items:center;}
@@ -265,6 +270,10 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .fc-datebar input{width:auto;flex:none;padding:9px 10px;font-size:13px;}
 .fc-datebar .fc-today-btn{border:2px solid var(--border);background:#fff;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;color:var(--sub);cursor:pointer;}
 .fc-datebar .fc-today-btn:active{background:var(--money-light);color:var(--money);border-color:var(--money);}
+/* 運行記録：今日以外の日を編集しているときの注意帯（橙）。
+   過去日でも編集できる仕様なので、禁止ではなく「日付の取り違え防止」の表示。 */
+.drive-lock-note{display:none;font-size:11px;font-weight:700;border-radius:8px;padding:8px 11px;margin:0 2px 10px;line-height:1.6;}
+.drive-lock-note.editing{display:block;background:var(--warn-light);color:var(--warn);}
 .fc-item{background:var(--card);border-radius:12px;padding:11px 14px;margin-bottom:8px;box-shadow:var(--shadow);border-left:5px solid var(--border);}
 .fc-item.fc-ok{border-left-color:var(--good);}
 .fc-item.fc-ng{border-left-color:var(--bad);}
@@ -570,6 +579,20 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       <div class="q" style="margin-bottom:0"><div class="q-label">メールアドレス</div><input type="text" class="field" id="settings-email" disabled style="background:#EEEEEE;color:var(--sub);"></div>
       <div style="font-size:11px;color:var(--sub);margin:6px 2px 0;line-height:1.5;">※認証に使うためここでは変更できません</div>
     </div>
+    <div class="section">
+      <div class="section-title">🤖 レシートAI読み取り（Gemini APIキー）</div>
+      <div class="q" style="margin-bottom:8px">
+        <div class="q-label">Gemini APIキー</div>
+        <input type="password" class="field" id="settings-gemini-key" placeholder="AIzaSy… を貼り付け" autocomplete="off" oninput="onGeminiKeyInput()">
+      </div>
+      <div style="font-size:11px;color:var(--sub);line-height:1.8;">
+        ① <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--money);font-weight:700;">Google AI Studio</a> をブラウザで開き、Googleアカウントでログイン<br>
+        ② 「Create API key」（APIキーを作成）を押す<br>
+        ③ 表示された「AIza…」で始まる文字列をコピーして、上の欄に貼り付ける<br>
+        <b style="color:var(--money)">※無料・カード登録は不要です。キーは他人に教えないでください。</b><br>
+        ※貼り付けた時点で自動的に保存されます（この端末だけに保存され、他の人からは見えません）
+      </div>
+    </div>
     <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--money);" onclick="saveProfileSettings()">この内容を保存する</button>
     <div id="settings-msg" style="display:none;font-size:12px;font-weight:700;margin-top:8px;text-align:center;"></div>
     <div class="note" style="margin-top:14px;">🎯 1日の目標配達個数・今月の稼働予定日数は「配達個数」タブの<span class="profit-link" style="cursor:pointer" onclick="go('count')">目標設定へ ▸</span></div>
@@ -603,10 +626,11 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
   <div class="subheader expense"><button class="btn-back" onclick="go('home')">‹</button><div><h1>経費を記録</h1><div class="subheader-sub">撮って、行ごとに経費を選ぶ</div></div></div>
   <div class="form-body">
 
-    <button class="camera-btn" onclick="scanDemo()">
+    <input type="file" id="receipt-file-input" accept="image/*" style="display:none" onchange="onReceiptFileSelected(event)">
+    <button class="camera-btn" onclick="triggerReceiptCapture()">
       <span class="camera-icon">📷</span>
       <span>レシートを撮る</span>
-      <span class="camera-sub">商品名・金額・税率を自動で読み取ります</span>
+      <span class="camera-sub">商品名・金額・税率をAIが自動で読み取ります</span>
     </button>
 
     <div class="section">
@@ -638,8 +662,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
 <!-- ═══ 配達個数 ═══ -->
 <div id="count" class="screen">
-  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>配達個数</h1><div class="subheader-sub">今日の完了数を記録</div></div></div>
+  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>配達個数</h1><div class="subheader-sub">日付を選んで完了数を記録</div></div></div>
   <div class="form-body">
+    <!-- 日付を選べるようにする。以前は「今日」固定で、過去の日を入れても today に上書き保存されていた -->
+    <div class="fc-datebar">
+      <input type="date" class="field" id="count-date-input" onchange="onCountDateChange()">
+      <button type="button" class="fc-today-btn" onclick="countDateToday()">今日</button>
+    </div>
     <div class="count-input-card">
       <div class="q-label" style="color:var(--sub)" id="count-date">今日</div>
       <input type="text" inputmode="numeric" pattern="[0-9]*" class="count-big-input" id="count-val" value="0" oninput="onCountInput()" onblur="onCountBlur()">
@@ -682,6 +711,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       <button class="subtab-btn" id="subtab-cal" onclick="showSub('cal')">🗓 記入状況</button>
     </div>
 
+    <!-- 記録する日。既定は今日。過去日はまとめ役が許可したときだけ編集できる（提出書類のため） -->
+    <div class="fc-datebar" id="drive-datebar">
+      <input type="date" class="field" id="drive-date-input" onchange="onDriveDateChange()">
+      <button type="button" class="fc-today-btn" onclick="driveDateToday()">今日</button>
+    </div>
+    <div class="drive-lock-note" id="drive-lock-note"></div>
+
     <!-- ── 点呼簿 ── -->
     <div class="subpanel active" id="sub-tenko">
       <!-- 運転者名・車両番号は点呼記録簿の法定記載事項。提出様式にも列があるため点呼簿にも持たせる -->
@@ -699,7 +735,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
           <div><div class="q-label">実施日時</div><input type="datetime-local" class="field" id="tenko-pre-datetime"></div>
           <div><div class="q-label">点呼執行者</div><input type="text" class="field" id="tenko-pre-executor"></div>
         </div></div>
-        <div class="q"><div class="q-label">点呼方法</div><div class="chip-row" id="tenko-pre-method">
+        <div class="q"><div class="q-label">点呼方法（複数選択可）</div><div class="chip-row" data-multi="1" id="tenko-pre-method">
           <span class="chip active" onclick="toggleChip(this)">対面</span><span class="chip" onclick="toggleChip(this)">IT点呼</span><span class="chip" onclick="toggleChip(this)">電話等</span>
         </div></div>
         <div class="q"><div class="q-label">アルコール検知器使用の有無</div><div class="chip-row" id="tenko-pre-alcohol">
@@ -728,7 +764,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
           <div><div class="q-label">実施日時</div><input type="datetime-local" class="field" id="tenko-post-datetime"></div>
           <div><div class="q-label">点呼執行者</div><input type="text" class="field" id="tenko-post-executor"></div>
         </div></div>
-        <div class="q"><div class="q-label">点呼方法</div><div class="chip-row" id="tenko-post-method">
+        <div class="q"><div class="q-label">点呼方法（複数選択可）</div><div class="chip-row" data-multi="1" id="tenko-post-method">
           <span class="chip active" onclick="toggleChip(this)">対面</span><span class="chip" onclick="toggleChip(this)">IT点呼</span><span class="chip" onclick="toggleChip(this)">電話等</span>
         </div></div>
         <div class="q"><div class="q-label">アルコール検知器使用の有無</div><div class="chip-row" id="tenko-post-alcohol">
@@ -847,7 +883,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       <button class="subtab-btn" id="pv-tab-vehicle" onclick="showPreviewPanel('vehicle')">🔧 日常点検記録簿</button>
     </div>
 
-    <button class="export-btn no-print" id="preview-print-btn" onclick="window.print()" style="margin-bottom:2px;">🖨 この帳票を印刷／PDF保存する</button>
+    <button class="export-btn no-print" id="pdf-save-btn" onclick="generateLedgerPdf()" style="margin-bottom:8px;">📄 PDFで保存</button>
+    <div class="export-status no-print" id="pdf-status" style="display:none"></div>
+    <div class="print-guide no-print">
+      <b>📄 プリンターが無い方はこちら</b>：上の「PDFで保存」を押すと、点呼記録簿・業務記録・日常点検記録簿の3種類がまとまった1つのPDFファイルとして保存されます（スマホの「ファイル」アプリに入ります）。あとはコンビニのネットプリント（セブン-イレブン・ローソンなど）にアップロードして印刷したり、LINEやメールでパソコンに送って印刷したりできます。
+    </div>
+
+    <button class="export-btn secondary no-print" id="preview-print-btn" onclick="window.print()" style="margin-bottom:2px;margin-top:14px;">🖨 印刷する（プリンターをお持ちの場合）</button>
     <div class="print-guide no-print">
       <b>📱 iPhone（Safari）の場合</b>：上のボタンを押すと印刷プレビューが開きます。プレビュー画像を指で広げると拡大表示になり、内容を確認できます。左下の共有ボタン▸「ファイルに保存」を選ぶとPDFとして保存できます。<br>
       <b>🤖 Android（Chrome）の場合</b>：印刷プレビューが開いたら「送信先」の一覧から「PDFに保存」を選ぶとPDFとして保存できます。
@@ -993,8 +1035,312 @@ function sendApprovalRequestEmail(profile){
 
 var CATS=['燃料費（ガソリン）','車両費・修繕費','保険料','通信費','消耗品費','接待交際費','租税公課','地代家賃','雑費'];
 
+/* OCRで読んだ行を「最初から経費ONにしてよいか」を科目で判定する。
+   ・仕事でしか買わない科目（軽油・タイヤ・軍手など）→ ON。軽油だけのレシートはタップ不要になる。
+   ・飲食など私用が混ざりうる科目（雑費・接待交際費）→ OFF。
+     外し忘れて経費を多く計上するより、取りこぼす方が安全なため。
+   ・科目が未選択/不明のときも OFF（本人に確認させる）。 */
+var BUSINESS_CATS=['燃料費（ガソリン）','車両費・修繕費','保険料','通信費','消耗品費','租税公課','地代家賃'];
+function isBusinessCategory(cat){
+  return BUSINESS_CATS.indexOf(String(cat||'').trim()) >= 0;
+}
+
+/* ══════════════════════ レシートAI読み取り（Gemini OCR） ══════════════════════
+   参考: tools/OCR移植キット.md ／ projects/軽貨物まるごとアプリ/OCR設定.md
+   APIキーはFirebaseに置かず、この端末のlocalStorageにのみ保存する。 */
+var GEMINI_KEY_STORAGE='keikamotsu_gemini_api_key';
+var GEMINI_MODELS=['gemini-flash-lite-latest','gemini-3-flash-preview','gemini-flash-latest'];
+var lastReceiptFile=null;
+
+/* 出力例（few-shot）は軽貨物ドライバーが実際に使うレシートに即した内容にする
+   （ガソリンスタンドの軽油、コンビニの軍手・飲料、カー用品店のオイル交換など）。
+   §5の安全策（内税/外税・電話番号除外・数字なら何でも金額にしない・並び順を前提にしない）
+   をそのままプロンプトに入れている。 */
+var OCR_PROMPT =
+'あなたは軽貨物ドライバーの経費入力を手伝うアシスタントです。\n'+
+'渡された画像は、印刷されたレシート・領収書です（手書きは対象外）。\n\n'+
+'【出力】読み取り結果は JSON配列だけで出力してください。各行のキー:\n'+
+'- "item": 商品名・内容。価格の数字・¥マーク・商品コードや列番号は絶対に含めない。price直後の単独の記号（軽・内・外・※など）も除去する。ただし名称に組み込まれた型番・容量表記（例: Y1000、2L、473ml）は残す。\n'+
+'- "a": 金額。数字のみ（カンマ・¥・円マークは付けない）。読めなければ空文字。\n'+
+'- "rate": 消費税率。8 か 10 の数値。「※」「軽」マークが付いた行や軽減税率対象の飲食料品は8。無ければ10。イートイン表示があれば10。判断できないときは10にして conf を low にする。\n'+
+'- "cat": 勘定科目。次のどれかから選ぶ: '+CATS.join('／')+'。\n'+
+'  判定ヒント: 軽油・ガソリン・給油 → 燃料費（ガソリン）／ タイヤ・オイル交換・部品・洗車・整備 → 車両費・修繕費／ 軍手・タオル・文具・電池・清掃用品 → 消耗品費／ スマホ代・通信 → 通信費／ 判断に迷ったら 雑費。\n'+
+'- "conf": 自信度。はっきり読める行は "high"、曖昧・かすれ・判読困難なら "low"。\n\n'+
+'【明細の展開ルール】\n'+
+'- レシートの商品明細を1行につき1件展開する。金額に¥マークが付いていない薄い表記の行も見落とさず1行にする。\n'+
+'- 「¥」「円」が付いている、またはカンマ区切りの数字らしい文字列を金額として最優先で拾う。「円」「¥」の表記が無い場合は、人数・個数（〜人、〜個、〜枚などの単位が付く数字）や日付の数字を除外したうえで、最も金額らしい数字を採る。数字なら何でも金額にしないこと。\n'+
+'- 電話番号・FAX番号・郵便番号・住所の数字は絶対に金額として拾わない（例: TEL/FAX表記、0178(45)0238のような形式）。\n'+
+'- 消費税の内税／外税を区別する。「内消費税」「(内)」「内税」などは価格にすでに含まれている参考表示なので、消費税を別行にしない（別行にすると二重計上で合計がズレる）。「小計」＋「消費税」＝「合計」の並びで、税が別に加算されている場合だけ税を1行にする。合計金額と一致するかで判断し、迷ったら税行を作らない。\n'+
+'- 「小計」「合計」「お買上計」「お預り」「おつり」「ポイント」「非課税計」「点数」「個」といった行、見出し・店名・住所・電話番号・ページ番号は1件として出力しない。\n'+
+'- 商品の並ぶ順番を前提にせず、各項目の性質（金額らしいか・商品名らしいか）で判断する。\n'+
+'- "item"と"a"のどちらも読めない行は出力しない。\n'+
+'- 説明文やマークダウンは書かず、JSON配列だけを出力してください。\n\n'+
+'出力例（ガソリンスタンドのレシート。軽油と洗車代の2品で、内税表示のため消費税は別行にしない）:\n'+
+'[{"item":"軽油","a":"6800","rate":8,"cat":"燃料費（ガソリン）","conf":"high"},{"item":"洗車（コーティング）","a":"1500","rate":10,"cat":"車両費・修繕費","conf":"high"}]\n\n'+
+'出力例（コンビニのレシート。軍手と飲料。軍手は税率10%、飲料は軽減税率8%）:\n'+
+'[{"item":"軍手 2双組","a":"298","rate":10,"cat":"消耗品費","conf":"high"},{"item":"アクエリアス 500ml","a":"138","rate":8,"cat":"雑費","conf":"high"}]\n\n'+
+'出力例（カー用品店のレシート。オイル交換工賃とオイル代。かすれて金額が読みにくい行はconf:low）:\n'+
+'[{"item":"エンジンオイル交換工賃","a":"3300","rate":10,"cat":"車両費・修繕費","conf":"high"},{"item":"エンジンオイル 4L","a":"4980","rate":10,"cat":"車両費・修繕費","conf":"low"}]';
+
+/* 消費税など、AIが high と言っても信じてはいけない行（合計ズレの原因になりやすい） */
+var OCR_RISKY_PATTERN=/消費税|内税|外税|税額/;
+/* 明細ではない集計行・電話番号などは、AIが誤って出力した場合の保険として二重に弾く */
+var OCR_BAN_ITEM_PATTERN=/^(小計|合計|お買上げ?計|お買い上げ計|お預か?り|お釣り|おつり|ポイント|非課税計|点数|個)$/;
+var OCR_PHONE_WORD_PATTERN=/TEL|FAX|〒|電話|https?:\/\/|www\./i;
+var OCR_PHONE_NUM_PATTERN=/\d{2,4}\s*[\(（]\s*\d{2,4}\s*[\)）]\s*\d{3,4}/;
+
+function loadReceiptImageEl(src){
+  return new Promise(function(resolve,reject){
+    var img=new Image();
+    img.onload=function(){resolve(img);};
+    img.onerror=reject;
+    img.src=src;
+  });
+}
+/* 画像の前処理：最大2000pxにリサイズ＋コントラスト補正。暗すぎる画像は警告用に判定する。 */
+function preprocessReceiptImage(file){
+  var objUrl=URL.createObjectURL(file);
+  return loadReceiptImageEl(objUrl).then(function(img){
+    var maxSide=2000;
+    var scale=Math.min(1, maxSide/Math.max(img.width,img.height));
+    var cw=Math.max(1,Math.round(img.width*scale)), ch=Math.max(1,Math.round(img.height*scale));
+    var canvas=document.createElement('canvas');
+    canvas.width=cw; canvas.height=ch;
+    var ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,cw,ch);
+    URL.revokeObjectURL(objUrl);
+
+    var imgData=ctx.getImageData(0,0,cw,ch);
+    var d=imgData.data;
+    var min=255,max=0;
+    for(var i=0;i<d.length;i+=4*9){
+      var lum=d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114;
+      if(lum<min) min=lum;
+      if(lum>max) max=lum;
+    }
+    var range=Math.max(1,max-min);
+    var sum=0, cnt=0;
+    for(var j=0;j<d.length;j+=4){
+      for(var c=0;c<3;c++){
+        var v=(d[j+c]-min)*255/range;
+        d[j+c]=v<0?0:(v>255?255:v);
+      }
+      if((j>>2)%4===0){ sum+=d[j]*0.299+d[j+1]*0.587+d[j+2]*0.114; cnt++; }
+    }
+    ctx.putImageData(imgData,0,0);
+    var brightness=cnt?Math.round(sum/cnt):128;
+    return {dataURL:canvas.toDataURL('image/jpeg',0.85), dark:brightness<60, brightness:brightness};
+  });
+}
+
+/* Geminiへの問い合わせ（混雑・上限はモデルを変えて自動リトライ。原因別に案内を出し分ける） */
+function ocrGeminiRequestWithFallback(body, apiKey, onProgress){
+  var wait=function(ms){ return new Promise(function(r){ setTimeout(r,ms); }); };
+  var lastErr={kind:'other', message:'AI読み取りに失敗しました'};
+  var chain=Promise.resolve();
+  var result=null;
+  return (function loopModels(mi){
+    if(mi>=GEMINI_MODELS.length) return Promise.reject(lastErr);
+    var model=GEMINI_MODELS[mi];
+    return (function loopAttempt(attempt){
+      if(attempt>=2) return loopModels(mi+1);
+      if(onProgress) onProgress(attempt ? '混雑のため再試行中…' : 'AIが読み取っています…');
+      var url='https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent?key='+encodeURIComponent(apiKey);
+      return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+        .catch(function(){
+          lastErr={kind:'network', message:'ネット接続に問題があるようです'};
+          return Promise.reject(lastErr); // ネット障害はモデルを変えても無駄
+        })
+        .then(function(res){
+          if(res.ok){
+            return res.json().catch(function(){
+              lastErr={kind:'parse', message:'AI読み取りに失敗しました'};
+              return loopAttempt(attempt+1);
+            }).then(function(json){
+              if(!json) return; // 上のcatchで既に次へ進めている
+              var t = json && json.candidates && json.candidates[0] && json.candidates[0].content && json.candidates[0].content.parts && json.candidates[0].content.parts[0] && json.candidates[0].content.parts[0].text;
+              if(t) return t;
+              lastErr={kind:'parse', message:'AI読み取りに失敗しました'};
+              return loopAttempt(attempt+1);
+            });
+          }
+          if(res.status===400||res.status===403){ return Promise.reject({kind:'key', message:'APIキーが正しくないようです'}); }
+          if(res.status===503){ lastErr={kind:'busy', message:'AIが混雑しています。少し待って再試行してください'}; return wait(1200).then(function(){ return loopAttempt(attempt+1); }); }
+          if(res.status===429){ lastErr={kind:'rate', message:'無料枠の上限のようです。時間をおいてお試しください'}; return loopModels(mi+1); }
+          lastErr={kind:'other', message:'AI読み取りに失敗しました（'+res.status+'）'};
+          return wait(600).then(function(){ return loopAttempt(attempt+1); });
+        });
+    })(0);
+  })(0);
+}
+
+function normalizeOcrAmount(raw){
+  if(raw===undefined||raw===null) return '';
+  var s=String(raw).trim();
+  if(s==='') return '';
+  s=s.replace(/[,，]/g,'').replace(/[¥￥円]/g,'');
+  var ZEN='０１２３４５６７８９';
+  s=s.replace(/[０-９]/g,function(ch){ return String(ZEN.indexOf(ch)); });
+  s=s.replace(/\s+/g,'');
+  if(!/^\d+$/.test(s)) return '';
+  return String(parseInt(s,10));
+}
+function ocrGuessCategory(text){
+  text=text||'';
+  if(/軽油|ガソリン|給油|レギュラー|ハイオク|燃料/.test(text)) return '燃料費（ガソリン）';
+  if(/タイヤ|オイル交換|部品|洗車|整備|車検|修理|バッテリー/.test(text)) return '車両費・修繕費';
+  if(/軍手|タオル|文具|電池|清掃|ゴム手袋|ウエス/.test(text)) return '消耗品費';
+  if(/通信|スマホ|携帯|Wi-?Fi/i.test(text)) return '通信費';
+  return '雑費';
+}
+/* AIの生データ → アプリ内の共通形式へ。要注意行はAIがhighと言っても強制でlowに落とす。 */
+function normalizeOcrRow(obj){
+  obj=obj||{};
+  var item=(obj.item!==undefined&&obj.item!==null)?String(obj.item).trim():'';
+  var a=normalizeOcrAmount(obj.a);
+  var rate=Number(obj.rate);
+  if(rate!==8 && rate!==10) rate=10;
+  var cat=CATS.indexOf(obj.cat)>=0 ? obj.cat : ocrGuessCategory(item);
+  var isRisky=OCR_RISKY_PATTERN.test(item);
+  var conf=(!isRisky && obj.conf==='high') ? 'high' : 'low';
+  return {item:item, a:a, rate:rate, cat:cat, conf:conf};
+}
+/* ゴミ行・危険な行を弾く関門（プロンプトの指示に加えた二重の保険） */
+function filterOcrRows(rows){
+  return (rows||[]).filter(function(r){
+    if(!r.item || !r.a) return false;
+    if(OCR_BAN_ITEM_PATTERN.test(r.item.trim())) return false;
+    if(OCR_PHONE_WORD_PATTERN.test(r.item)) return false;
+    if(OCR_PHONE_NUM_PATTERN.test(r.item)) return false;
+    return true;
+  });
+}
+function callOcrGemini(dataURL, apiKey, onProgress){
+  var base64=(dataURL.split(',')[1])||'';
+  var body={
+    contents:[{parts:[
+      {text: OCR_PROMPT},
+      {inline_data:{mime_type:'image/jpeg', data:base64}}
+    ]}],
+    generationConfig:{temperature:0, response_mime_type:'application/json'}
+  };
+  return ocrGeminiRequestWithFallback(body, apiKey, onProgress).then(function(rawText){
+    var cleaned=String(rawText||'').replace(/```json|```/g,'').trim();
+    var parsed;
+    try{ parsed=JSON.parse(cleaned); }
+    catch(e){ throw {kind:'parse', message:'AI読み取りに失敗しました'}; }
+    var arr = Array.isArray(parsed) ? parsed : (parsed && (parsed.rows||parsed.data));
+    if(!Array.isArray(arr)) throw {kind:'parse', message:'AI読み取りに失敗しました'};
+    return arr.map(normalizeOcrRow);
+  });
+}
+
+/* ── UI側の入口 ── */
+function triggerReceiptCapture(){
+  /* ★キーの確認は「写真を撮る前」に行う。
+     撮ってから「キーがありません」と言われるのは徒労なので、
+     先に案内して設定画面へ誘導する。（runReceiptOcr側の確認は保険として残す） */
+  if(!(localStorage.getItem(GEMINI_KEY_STORAGE)||'').trim()){
+    var goSettings=window.confirm(
+      'レシートのAI読み取りには Gemini APIキーの設定が必要です。\n\n'+
+      '設定画面（ヘッダーの名前をタップ）でキーを入れると、撮るだけで明細が入るようになります。\n\n'+
+      'OK＝設定画面へ移動 / キャンセル＝このまま自分で行を入力する'
+    );
+    if(goSettings){ go('settings'); }
+    return;
+  }
+  document.getElementById('receipt-file-input').click();
+}
+function onReceiptFileSelected(ev){
+  var file = ev.target.files && ev.target.files[0];
+  ev.target.value=''; // 同じファイルをもう一度選んでも onchange が発火するように
+  if(!file) return;
+  lastReceiptFile=file;
+  runReceiptOcr(file);
+}
+function retryReceiptOcr(){
+  if(lastReceiptFile) runReceiptOcr(lastReceiptFile);
+  else triggerReceiptCapture();
+}
+function showOcrToast(cls, html){
+  var el=document.getElementById('scan-toast');
+  el.className='scan-toast'+(cls?(' '+cls):'');
+  el.style.display='flex';
+  el.innerHTML=html;
+}
+function showOcrError(msg){
+  showOcrToast('ocr-error', '⚠️ '+esc(msg)+' <button type="button" class="ocr-retry-btn" onclick="retryReceiptOcr()">🔄 もう一度読み取る</button>');
+}
+function runReceiptOcr(file){
+  var apiKey=(localStorage.getItem(GEMINI_KEY_STORAGE)||'').trim();
+  if(!apiKey){
+    // ★キー未設定のとき、黙って読み取れない結果を出さず、必ず案内する
+    var goSettings=window.confirm(
+      'レシートのAI読み取りには Gemini APIキーの設定が必要です。\n\n'+
+      '設定画面（ヘッダーの名前をタップ）でキーを入れると使えるようになります。\n\n'+
+      'OK＝設定画面へ移動 / キャンセル＝このまま自分で行を入力する'
+    );
+    if(goSettings){ go('settings'); }
+    return;
+  }
+  showOcrToast('', '⏳ 画像を準備しています…');
+  preprocessReceiptImage(file).then(function(pre){
+    if(pre.dark){ toast('⚠️ 画像が暗いようです。明るい場所でもう一度撮ると精度が上がります'); }
+    return callOcrGemini(pre.dataURL, apiKey, function(msg){ showOcrToast('', '⏳ '+esc(msg)); });
+  }).then(function(rows){
+    applyOcrRowsToReceipt(filterOcrRows(rows));
+  }).catch(function(err){
+    var msg=(err && err.message) || 'AI読み取りに失敗しました';
+    showOcrError(msg);
+  });
+}
+function applyOcrRowsToReceipt(rows){
+  document.getElementById('receipt-lines').innerHTML='';
+  if(!rows.length){
+    addLine('', '', 10); addLine('', '', 10); addLine('', '', 10);
+    // ★読み取り0件のときも必ず再試行ボタンを出す（撮影画面まで戻らせない）
+    showOcrError('レシートの内容を読み取れませんでした。ピントを合わせて明るい場所でもう一度お試しください');
+    return;
+  }
+  var lowCount=0, offCount=0;
+  rows.forEach(function(r){
+    var picked=isBusinessCategory(r.cat);   // ★科目で「経費ON/OFF」を自動判定
+    if(!picked) offCount++;
+    addLine(r.item, r.a, r.rate, r.cat, picked, r.conf);
+    if(r.conf==='low') lowCount++;
+  });
+  calcExpTotal();
+  /* 経費OFFで入った行があることは必ず伝える。黙ってOFFにすると経費の取りこぼしに気づけないため。 */
+  var offNote = offCount>0 ? ('　※'+offCount+'件は私用の可能性があるため経費オフで入れています（仕事の分はオンにしてください）') : '';
+  if(lowCount>0){
+    showOcrToast('ocr-warn', '⚠️ 読み取りました（'+rows.length+'件）。要確認 '+lowCount+'件（オレンジの行は内容をよく確認してください）'+offNote);
+  } else {
+    showOcrToast('', '✅ 読み取りました（'+rows.length+'件）。内容と税率を確認してください。'+offNote);
+  }
+  document.getElementById('scan-tag').style.display='inline';
+  toast('📷 レシートを読み取りました（'+rows.length+'件）');
+}
+
 var currentUser=null, currentProfile=null, isManager=false;
 var countVal=0, goalTarget=100, workDays=22;
+/* 配達個数画面で編集中の日付。既定は今日だが、過去の日も選んで記録できる。
+   ホームのゲージと収入画面は「今日」の数を使うので、
+   過去日を編集している間はそれらを書き換えない（countDate と今日を比べて判断する）。 */
+var countDate = null;
+function isCountDateToday(){ return !countDate || countDate===todayKey(); }
+
+/* ══════════════════════ 運行記録の対象日 ══════════════════════
+   ・driveDate … 運行記録タブで見ている日（既定=今日）
+
+   過去日の修正は **誰でもいつでもできる**（2026-08-17 北上さん判断）。
+   以前は「提出書類だから今日しか書けない。まとめ役が一時的に解錠する」仕組み
+   （users/{uid}/profile/editUnlockUntil）だったが、入れ忘れに気づいた本人が
+   その場で直せないほうが実害が大きいため撤去した。
+   ※ DB側の editUnlockUntil ルールは残してあるが、アプリはもう読み書きしない。
+   代わりに「今日以外を編集中」であることを画面に必ず出し、日付の取り違えを防ぐ。 */
+var driveDate = null;
+function isDriveDateToday(){ return !driveDate || driveDate===todayKey(); }
+function driveDateKey(){ return driveDate || todayKey(); }
 var chartData=[];
 var authMode='login';
 
@@ -1060,26 +1406,61 @@ function showSub(id){
 }
 function goDrive(sub){ go('drive'); showSub(sub); }
 
-/* チップ選択（見た目） */
+/* チップ選択（見た目）
+   通常は単一選択。data-multi="1" が付いたグループ（点呼方法）だけ複数選択できる。
+   複数選択グループは最低1つ選択を必須にする（点呼記録簿の必須項目のため空欄を防ぐ）。 */
 function toggleChip(el){
   var group=el.parentElement;
-  group.querySelectorAll('.chip').forEach(function(c){c.classList.remove('active');});
-  el.classList.add('active');
+  if(group.dataset.multi==='1'){
+    var activating=!el.classList.contains('active');
+    if(!activating){
+      var activeCount=group.querySelectorAll('.chip.active').length;
+      if(activeCount<=1) return; // 最低1つは残す
+    }
+    el.classList.toggle('active');
+  } else {
+    group.querySelectorAll('.chip').forEach(function(c){c.classList.remove('active');});
+    el.classList.add('active');
+  }
 }
+/* 単一選択グループ → 文字列を返す（従来どおり）
+   複数選択グループ → 選択された文字列の配列を返す */
 function getChipValue(groupId){
   var g=document.getElementById(groupId);
-  var act=g.querySelector('.chip.active');
-  return act?act.textContent:'';
+  var acts=g.querySelectorAll('.chip.active');
+  if(g.dataset.multi==='1'){
+    return Array.prototype.map.call(acts, function(c){ return c.textContent; });
+  }
+  return acts.length ? acts[0].textContent : '';
 }
+/* value は 単一選択なら文字列、複数選択なら配列 or 文字列のどちらでも受け付ける。
+   ★過去データ互換: 複数選択グループでも、昔保存された単一文字列（例"対面"）を
+   そのまま渡しても正しく1件選択の状態に復元できるようにする。 */
 function setChipValue(groupId, value){
   var g=document.getElementById(groupId); if(!g) return;
+  var isMulti=g.dataset.multi==='1';
+  var values;
+  if(Array.isArray(value)) values=value;
+  else if(value){ values=[String(value)]; }
+  else values=[];
   var found=false;
   g.querySelectorAll('.chip').forEach(function(c){
-    var match=c.textContent===value;
+    var match=values.indexOf(c.textContent)>=0;
     if(match) found=true;
-    c.classList.toggle('active', match);
+    c.classList.toggle('active', isMulti ? match : false);
   });
-  if(!found){ var first=g.querySelector('.chip'); if(first) first.classList.add('active'); }
+  if(isMulti){
+    if(!found){ var first=g.querySelector('.chip'); if(first) first.classList.add('active'); }
+  } else if(found){
+    g.querySelectorAll('.chip').forEach(function(c){ c.classList.toggle('active', c.textContent===values[0]); });
+  } else {
+    var first2=g.querySelector('.chip'); if(first2) first2.classList.add('active');
+  }
+}
+/* 点呼方法などを帳票に出すときの文字列化。配列は「・」区切り(国交省様式の1マスに収まる表記) */
+function methodStr(m){
+  if(Array.isArray(m)) return m.join('・');
+  return m||'';
 }
 
 /* 車両点検3択 */
@@ -1403,6 +1784,9 @@ function syncCountViews(skipSelf){
     var left=Math.max(0, goalTarget-countVal);
     remain.textContent='目標 '+goalTarget+'個 ・ あと'+left+'個';
   }
+  /* ホームの達成率ゲージは「今日の配達」を表すもの。
+     過去日を編集している間は書き換えない（今日の実績が過去日の数で上書きされるのを防ぐ）。 */
+  if(!isCountDateToday()) return;
   var pct = goalTarget>0 ? Math.min(999, Math.round(countVal/goalTarget*100)) : 0;
   var gc=document.getElementById('goal-count'); if(gc) gc.textContent=countVal;
   var gt=document.getElementById('goal-target'); if(gt) gt.textContent=goalTarget;
@@ -1510,7 +1894,16 @@ function showBarDetail(i){
 /* ══════════════════════ 収入 ══════════════════════ */
 function loadIncomeScreen(){
   document.getElementById('in-date').value = todayKey();
-  document.getElementById('in-count').value = countVal || 0;
+  /* 個数欄は必ず「今日」の記録から入れる。
+     個数画面で過去日を編集した直後でも、その数が混ざらないようにするため。 */
+  document.getElementById('in-count').value = 0;
+  if(currentUser){
+    dref('users/'+currentUser.uid+'/deliveries/'+todayKey()).once('value').then(function(snap){
+      var v=snap.val();
+      document.getElementById('in-count').value=(v && v.count)||0;
+      calcIncomeLive();
+    });
+  }
   calcIncomeLive();
   loadIncomeList();
 }
@@ -1550,9 +1943,10 @@ function loadIncomeList(){
 }
 
 /* ══════════════════════ 経費（レシート） ══════════════════════ */
-function addLine(name,price,rate,cat){
+function addLine(name,price,rate,cat,picked,conf){
   var wrap=document.getElementById('receipt-lines');
-  var div=document.createElement('div'); div.className='receipt-line';
+  var div=document.createElement('div');
+  div.className='receipt-line'+(picked?' picked':'')+(conf==='low'?' low-conf':'');
   var opts='<option value=""'+(cat?'':' selected')+' disabled>▼カテゴリを選択</option>'+
     CATS.map(function(c){return '<option'+(c===cat?' selected':'')+'>'+c+'</option>';}).join('');
   rate=rate||10;
@@ -1597,21 +1991,6 @@ function initReceipt(){
   document.getElementById('receipt-lines').innerHTML='';
   addLine('', '', 10); addLine('','',10); addLine('','',10);
   calcExpTotal();
-}
-/* レシート撮影デモ（見た目だけ：自動で行が埋まる演出。実OCRは第2弾） */
-function scanDemo(){
-  document.getElementById('receipt-lines').innerHTML='';
-  addLine('軽油 満タン',6800,8,'燃料費（ガソリン）');
-  addLine('アクエリアス',138,8);
-  addLine('お弁当',498,8);
-  addLine('軍手',298,10);
-  addLine('タイヤ交換工賃',24000,10,'車両費・修繕費');
-  var lines=document.querySelectorAll('#receipt-lines .receipt-line');
-  [0,3,4].forEach(function(i){ if(lines[i]) lines[i].classList.add('picked'); });
-  calcExpTotal();
-  document.getElementById('scan-toast').style.display='flex';
-  document.getElementById('scan-tag').style.display='inline';
-  toast('📷 レシートを読み取りました（デモ演出）');
 }
 function validateExpenseCats(){
   var missing=null;
@@ -1678,15 +2057,43 @@ function loadExpenseList(){
 
 /* ══════════════════════ 配達個数 ══════════════════════ */
 function loadCountScreen(){
-  var d=new Date();
-  document.getElementById('count-date').textContent = d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+  /* 画面を開くたび今日に戻す（前回選んだ過去日のまま記録してしまうのを防ぐ） */
+  countDate = todayKey();
+  document.getElementById('count-date-input').value = countDate;
   document.getElementById('target-input').value = goalTarget;
   document.getElementById('workdays-input').value = workDays;
-  syncCountViews();
+  loadCountForDate();
+}
+/* 選んだ日付に保存済みの個数を読み込んで画面に出す */
+function loadCountForDate(){
+  var d=new Date(countDate+'T00:00:00');
+  var label=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
+  document.getElementById('count-date').textContent = label + (isCountDateToday()?'（今日）':'');
+  if(!currentUser){ syncCountViews(); return; }
+  dref('users/'+currentUser.uid+'/deliveries/'+countDate).once('value').then(function(snap){
+    var v=snap.val();
+    countVal=(v && v.count)||0;
+    syncCountViews();
+  });
+}
+function onCountDateChange(){
+  var v=document.getElementById('count-date-input').value;
+  if(!v) return;                       // 日付を空にされたら前の日付を保つ
+  countDate=v;
+  loadCountForDate();
+}
+function countDateToday(){
+  countDate=todayKey();
+  document.getElementById('count-date-input').value=countDate;
+  loadCountForDate();
 }
 function saveCount(){
-  dref('users/'+currentUser.uid+'/deliveries/'+todayKey()).set({count:countVal, updatedAt:firebase.database.ServerValue.TIMESTAMP})
-    .then(function(){ toast('✅ 今日の個数を記録しました'); })
+  var target = countDate || todayKey();
+  dref('users/'+currentUser.uid+'/deliveries/'+target).set({count:countVal, updatedAt:firebase.database.ServerValue.TIMESTAMP})
+    .then(function(){
+      toast('✅ '+(target===todayKey()?'今日':target.slice(5).replace('-','/'))+'の個数を記録しました');
+      loadChart();                     // 棒グラフをその場で更新する
+    })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
 }
 function saveTarget(){
@@ -1716,7 +2123,15 @@ function loadSettingsScreen(){
   document.getElementById('settings-office').value = currentProfile.officeName||'';
   document.getElementById('settings-vehicle').value = currentProfile.vehicle||'';
   document.getElementById('settings-email').value = currentProfile.email||(currentUser&&currentUser.email)||'';
+  document.getElementById('settings-gemini-key').value = localStorage.getItem(GEMINI_KEY_STORAGE)||'';
   var msg=document.getElementById('settings-msg'); msg.style.display='none';
+}
+/* APIキーはFirebaseに送らず、この端末のlocalStorageにだけ置く（他人から見えないようにするため）。
+   入力した時点で自動保存（保存ボタンの押し忘れ事故を防ぐ）。 */
+function onGeminiKeyInput(){
+  var v=document.getElementById('settings-gemini-key').value.trim();
+  if(v) localStorage.setItem(GEMINI_KEY_STORAGE, v);
+  else localStorage.removeItem(GEMINI_KEY_STORAGE);
 }
 /* role/status は本人による書き換えがルール上禁止(かつ触る必要がない)ため、
    更新オブジェクトに一切含めない。update()なので指定したキー以外(role/status等)は
@@ -1745,6 +2160,10 @@ function saveProfileSettings(){
 
 /* ══════════════════════ 運行記録：点呼簿 ══════════════════════ */
 function loadDriveToday(){
+  /* タブを開くたび今日に戻す（前回見ていた過去日のまま記録してしまう事故を防ぐ） */
+  driveDate = todayKey();
+  var di=document.getElementById('drive-date-input'); if(di) di.value=driveDate;
+  refreshDriveDateNote();
   loadTenko();
   loadGyomu();
   loadVehicleCheck();
@@ -1752,8 +2171,38 @@ function loadDriveToday(){
   var cm=document.getElementById('cal-month'); if(cm && !cm.value) cm.value=todayKey().slice(0,7);
   populateDriverSelects();
 }
+function onDriveDateChange(){
+  var v=document.getElementById('drive-date-input').value;
+  if(!v) return;                    // 空にされたら前の日付を保つ
+  driveDate=v;
+  refreshDriveDateNote();
+  loadTenko(); loadGyomu(); loadVehicleCheck();
+}
+function driveDateToday(){
+  driveDate=todayKey();
+  document.getElementById('drive-date-input').value=driveDate;
+  refreshDriveDateNote();
+  loadTenko(); loadGyomu(); loadVehicleCheck();
+}
+/* 今日以外の日を開いているときだけ、注意帯を出す。
+   編集は止めない（誰でも過去日を直せる仕様）。狙いは「今日のつもりで別の日に
+   保存してしまう」事故を防ぐこと。今日に戻れば帯は消える。 */
+function refreshDriveDateNote(){
+  var note=document.getElementById('drive-lock-note');
+  if(!note) return;
+  if(isDriveDateToday()){
+    note.className='drive-lock-note'; note.textContent='';
+  } else {
+    note.className='drive-lock-note editing';
+    note.textContent='✏️ 今日ではなく '+fmtDriveDate()+' を編集しています。保存すると '+fmtDriveDate()+' の記録になります。';
+  }
+}
+function fmtDriveDate(){
+  var d=new Date(driveDateKey()+'T00:00:00');
+  return (d.getMonth()+1)+'月'+d.getDate()+'日';
+}
 function loadTenko(){
-  dref('users/'+currentUser.uid+'/tenko/'+todayKey()).once('value').then(function(snap){
+  dref('users/'+currentUser.uid+'/tenko/'+driveDateKey()).once('value').then(function(snap){
     var v=snap.val();
     var defName=(currentProfile&&currentProfile.name)||'';
     var defVehicle=(currentProfile&&currentProfile.vehicle)||'';
@@ -1821,7 +2270,7 @@ function saveTenko(){
     updatedAt: firebase.database.ServerValue.TIMESTAMP
   };
   rememberVehicle(data.vehicle);
-  dref('users/'+currentUser.uid+'/tenko/'+todayKey()).set(data)
+  dref('users/'+currentUser.uid+'/tenko/'+driveDateKey()).set(data)
     .then(function(){ toast('✅ 点呼を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
 }
@@ -1833,7 +2282,7 @@ function calcGyomuDistance(){
   document.getElementById('gyomu-distance').textContent = d+' km';
 }
 function loadGyomu(){
-  dref('users/'+currentUser.uid+'/gyomu/'+todayKey()).once('value').then(function(snap){
+  dref('users/'+currentUser.uid+'/gyomu/'+driveDateKey()).once('value').then(function(snap){
     var v=snap.val();
     if(v){
       document.getElementById('gyomu-driver').value=v.driver||(currentProfile&&currentProfile.name)||'';
@@ -1868,14 +2317,14 @@ function saveGyomu(){
     updatedAt: firebase.database.ServerValue.TIMESTAMP
   };
   rememberVehicle(data.vehicle);
-  dref('users/'+currentUser.uid+'/gyomu/'+todayKey()).set(data)
+  dref('users/'+currentUser.uid+'/gyomu/'+driveDateKey()).set(data)
     .then(function(){ toast('✅ 業務簿を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
 }
 
 /* ══════════════════════ 運行記録：車両点検 ══════════════════════ */
 function loadVehicleCheck(){
-  dref('users/'+currentUser.uid+'/vehicleCheck/'+todayKey()).once('value').then(function(snap){
+  dref('users/'+currentUser.uid+'/vehicleCheck/'+driveDateKey()).once('value').then(function(snap){
     var v=snap.val();
     if(v){
       for(var i=1;i<=15;i++){ setCheckValue('vc'+i, v['item'+i]||'ok'); }
@@ -1887,7 +2336,7 @@ function saveVehicleCheck(){
   var data={};
   for(var i=1;i<=15;i++){ data['item'+i]=getCheckValue('vc'+i); }
   data.updatedAt=firebase.database.ServerValue.TIMESTAMP;
-  dref('users/'+currentUser.uid+'/vehicleCheck/'+todayKey()).set(data)
+  dref('users/'+currentUser.uid+'/vehicleCheck/'+driveDateKey()).set(data)
     .then(function(){ toast('✅ 車両点検を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
 }
@@ -2257,13 +2706,30 @@ function showCalDetail(dk){
   var gyomuOk=!!(g && g.updatedAt), vcOk=!!(v && v.updatedAt);
   var d=document.getElementById('cal-detail');
   d.style.display='block';
+  /* 抜けを見つけたその場で直せるように、点呼簿タブをその日で開くボタンを出す。
+     他メンバーを見ているとき（まとめ役）は出さない。押すと自分の記録として
+     その日を編集することになり、取り違えの元になるため。 */
+  var isSelf = calTargetUid()===currentUser.uid;
+  var jumpBtn = isSelf
+    ? '<button class="export-btn secondary" style="margin-top:10px" onclick="jumpToDriveDate(\''+dk+'\')">✏️ この日を入力・修正する</button>'
+    : '';
   d.innerHTML = '<div class="cal-detail-date">'+fmtYmdSlash(dk)+'</div>'
     +'<div class="fc-pills">'
       +'<span class="fc-pill '+(preOk?'ok':'ng')+'">乗務前'+(preOk?'◯':'✗')+'</span>'
       +'<span class="fc-pill '+(postOk?'ok':'ng')+'">乗務後'+(postOk?'◯':'✗')+'</span>'
       +'<span class="fc-pill '+(gyomuOk?'ok':'ng')+'">業務簿'+(gyomuOk?'◯':'✗')+'</span>'
       +'<span class="fc-pill '+(vcOk?'ok':'ng')+'">車両点検'+(vcOk?'◯':'✗')+'</span>'
-    +'</div>';
+    +'</div>'+jumpBtn;
+}
+/* カレンダーで選んだ日を、点呼簿タブにそのまま持っていく（記入漏れの直し方の主動線）。
+   loadDriveToday() は今日に戻してしまうので、ここでは呼ばずに個別に読み直す。 */
+function jumpToDriveDate(dk){
+  driveDate = dk;
+  var di=document.getElementById('drive-date-input'); if(di) di.value=dk;
+  refreshDriveDateNote();
+  loadTenko(); loadGyomu(); loadVehicleCheck();
+  showSub('tenko');
+  if(dk!==todayKey()) toast('✏️ '+fmtDriveDate()+'を開きました');
 }
 
 /* ══════════════════════ 帳票Excel出力（点呼簿・業務簿・車両点検） ══════════════════════
@@ -2299,6 +2765,23 @@ function setExportStatus(msg, cls){
    出力側は自動的に埋まる。 */
 var LEDGER_BLANK = { companyName:'', officeName:'', restInfo:'', waitingCargo:'', cargoWork:'', handoverInfo:'', accidentInfo:'' };
 var VC_MARK={ok:'○', warn:'△', ng:'×'};
+/* 帳票プレビュー/PDF作成で最後に使ったデータ（PDF保存ボタンがファイル名等に使う）。
+   PDF保存ボタンは帳票プレビュー画面にしかなく、その画面は openLedgerPreview() が
+   必ず先にデータを入れてから表示するため、ボタンが押せる時点では必ず入っている。 */
+var _lastPreviewMeta = null;
+/* ── 「記録がある日だけ行を作る」判定 ──
+   点呼簿・業務簿・車両点検それぞれの保存処理(saveTenko/saveGyomu/saveVehicleCheck)は、
+   保存時に必ず updatedAt: firebase.database.ServerValue.TIMESTAMP を書き込む
+   （2025行付近のコメント、記入漏れチェック機能(2080行付近)も同じ updatedAt の有無で判定している）。
+   なので updatedAt があるかどうかが「その日その帳票に記録があるか」の正しい判定材料になる。
+   シートごとに別々のキー(tenko/gyomu/vc)を見ることで、点呼だけ入力した日に業務記録が
+   空行で出る、といったことを防ぐ。Excel出力・プレビューの両方がこの1関数を共有する。 */
+function filterRecordedDays(days, key){
+  return days.filter(function(d){
+    var rec = d[key];
+    return !!(rec && rec.updatedAt);
+  });
+}
 function timeOnly(dtLocal){ var t=String(dtLocal||'').split('T'); return t[1]||''; }
 function fmtYmdSlash(dateStr){ return dateStr ? String(dateStr).replace(/-/g,'/') : ''; }
 function driverVehicleText(day, fallback){
@@ -2342,6 +2825,14 @@ function ledgerNotes(ws, cols, startRow, lines){
     ws.getCell(row,1).font={size:9};
   });
 }
+/* 対象月に1件も記録が無いシート用：表の中身をゼロ行にせず、
+   分かりやすい1行メッセージにする（ヘッダーだけで表が不自然に空になるのを防ぐ） */
+function ledgerEmptyRow(ws, cols, row){
+  ws.mergeCells(row,1,row,cols);
+  ws.getCell(row,1).value='この月の記録はありません';
+  ws.getCell(row,1).font={size:10,italic:true,color:{argb:'FF888888'}};
+  ws.getCell(row,1).alignment={horizontal:'center',vertical:'middle'};
+}
 
 function buildTenkoSheet(wb, ym, days, fallback){
   var ws=wb.addWorksheet('点呼記録簿');
@@ -2364,19 +2855,23 @@ function buildTenkoSheet(wb, ym, days, fallback){
   }
 
   var startRow=6;
-  days.forEach(function(day,idx){
-    var row=startRow+idx;
-    var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
-    var vals=[
-      fmtYmdSlash(day.date), driverVehicleText(day, fallback),
-      timeOnly(pre.datetime), pre.method||'', pre.executor||'', pre.alcoholCheck||'', pre.drinking||'', pre.condition||'', pre.inspection||'', pre.note||'',
-      timeOnly(post.datetime), post.method||'', post.executor||'', post.alcoholCheck||'', post.drinking||'', post.roadCondition||'', post.handover||'', post.note||''
-    ];
-    vals.forEach(function(v,i){
-      var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
-      cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+  if(days.length===0){
+    ledgerEmptyRow(ws, cols, startRow);
+  } else {
+    days.forEach(function(day,idx){
+      var row=startRow+idx;
+      var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
+      var vals=[
+        fmtYmdSlash(day.date), driverVehicleText(day, fallback),
+        timeOnly(pre.datetime), methodStr(pre.method), pre.executor||'', pre.alcoholCheck||'', pre.drinking||'', pre.condition||'', pre.inspection||'', pre.note||'',
+        timeOnly(post.datetime), methodStr(post.method), post.executor||'', post.alcoholCheck||'', post.drinking||'', post.roadCondition||'', post.handover||'', post.note||''
+      ];
+      vals.forEach(function(v,i){
+        var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
+        cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+      });
     });
-  });
+  }
   var endRow=startRow+Math.max(days.length,1)-1;
   borderAllCells(ws,4,1,endRow,cols);
   ledgerNotes(ws, cols, endRow+2, [
@@ -2411,20 +2906,24 @@ function buildGyomuSheet(wb, ym, days, fallback){
   }
 
   var startRow=6;
-  days.forEach(function(day,idx){
-    var row=startRow+idx;
-    var g=day.gyomu||{};
-    var vals=[
-      fmtYmdSlash(day.date), driverVehicleText(day, fallback),
-      g.startPlace||'', timeOnly(g.startDatetime), g.startOdo?String(g.startOdo):'',
-      g.endPlace||'', timeOnly(g.endDatetime), g.endOdo?String(g.endOdo):'',
-      ledgerDistance(day), g.route||'', LEDGER_BLANK.handoverInfo, LEDGER_BLANK.restInfo, LEDGER_BLANK.accidentInfo, LEDGER_BLANK.waitingCargo, LEDGER_BLANK.cargoWork
-    ];
-    vals.forEach(function(v,i){
-      var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
-      cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+  if(days.length===0){
+    ledgerEmptyRow(ws, cols, startRow);
+  } else {
+    days.forEach(function(day,idx){
+      var row=startRow+idx;
+      var g=day.gyomu||{};
+      var vals=[
+        fmtYmdSlash(day.date), driverVehicleText(day, fallback),
+        g.startPlace||'', timeOnly(g.startDatetime), g.startOdo?String(g.startOdo):'',
+        g.endPlace||'', timeOnly(g.endDatetime), g.endOdo?String(g.endOdo):'',
+        ledgerDistance(day), g.route||'', LEDGER_BLANK.handoverInfo, LEDGER_BLANK.restInfo, LEDGER_BLANK.accidentInfo, LEDGER_BLANK.waitingCargo, LEDGER_BLANK.cargoWork
+      ];
+      vals.forEach(function(v,i){
+        var cell=ws.getCell(row,i+1); cell.value=v; cell.font={size:8};
+        cell.alignment={vertical:'middle',wrapText:true,horizontal:(i===0||i===1)?'center':'left'};
+      });
     });
-  });
+  }
   var endRow=startRow+Math.max(days.length,1)-1;
   borderAllCells(ws,4,1,endRow,cols);
   ledgerNotes(ws, cols, endRow+2, [
@@ -2458,20 +2957,24 @@ function buildVehicleSheet(wb, ym, days, fallback){
   }
 
   var startRow=6;
-  days.forEach(function(day,idx){
-    var row=startRow+idx;
-    var v=day.vc||{};
-    ws.getCell(row,1).value=fmtYmdSlash(day.date);
-    ws.getCell(row,1).font={size:8}; ws.getCell(row,1).alignment={vertical:'middle',horizontal:'center'};
-    ws.getCell(row,2).value=driverVehicleText(day, fallback);
-    ws.getCell(row,2).font={size:8}; ws.getCell(row,2).alignment={vertical:'middle',wrapText:true};
-    for(var i=1;i<=15;i++){
-      var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
-      var cell=ws.getCell(row,2+i);
-      cell.value=mark; cell.font={size:10}; cell.alignment={horizontal:'center',vertical:'middle'};
-    }
-    var remarkCell=ws.getCell(row,18); remarkCell.value=''; remarkCell.font={size:8};
-  });
+  if(days.length===0){
+    ledgerEmptyRow(ws, cols, startRow);
+  } else {
+    days.forEach(function(day,idx){
+      var row=startRow+idx;
+      var v=day.vc||{};
+      ws.getCell(row,1).value=fmtYmdSlash(day.date);
+      ws.getCell(row,1).font={size:8}; ws.getCell(row,1).alignment={vertical:'middle',horizontal:'center'};
+      ws.getCell(row,2).value=driverVehicleText(day, fallback);
+      ws.getCell(row,2).font={size:8}; ws.getCell(row,2).alignment={vertical:'middle',wrapText:true};
+      for(var i=1;i<=15;i++){
+        var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
+        var cell=ws.getCell(row,2+i);
+        cell.value=mark; cell.font={size:10}; cell.alignment={horizontal:'center',vertical:'middle'};
+      }
+      var remarkCell=ws.getCell(row,18); remarkCell.value=''; remarkCell.font={size:8};
+    });
+  }
   var endRow=startRow+Math.max(days.length,1)-1;
   borderAllCells(ws,4,1,endRow,cols);
   ledgerNotes(ws, cols, endRow+2, [
@@ -2533,9 +3036,9 @@ function exportLedgerExcel(){
     LEDGER_BLANK.officeName = profile.officeName||'';
     var wb=new ExcelJS.Workbook();
     wb.creator='軽貨物まるごとアプリ';
-    buildTenkoSheet(wb, ym, days, fallback);
-    buildGyomuSheet(wb, ym, days, fallback);
-    buildVehicleSheet(wb, ym, days, fallback);
+    buildTenkoSheet(wb, ym, filterRecordedDays(days,'tenko'), fallback);
+    buildGyomuSheet(wb, ym, filterRecordedDays(days,'gyomu'), fallback);
+    buildVehicleSheet(wb, ym, filterRecordedDays(days,'vc'), fallback);
     return wb.xlsx.writeBuffer();
   }).then(function(buffer){
     var blob=new Blob([buffer], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
@@ -2563,6 +3066,11 @@ function ledgerMetaHtml(title, profile, ym){
 function driverVehicleHtml(day, fallback){
   return esc(driverVehicleText(day, fallback)).replace(/\n/g,'<br>');
 }
+/* 対象月に1件も記録が無いときの表示（Excelのledgerと同じ考え方で、ヘッダーだけ残して
+   中身がゼロ行になって不自然にならないよう1行メッセージにする） */
+function ledgerEmptyRowHtml(colspan){
+  return '<tr><td class="al-l" colspan="'+colspan+'" style="text-align:center;color:#90A4AE;">この月の記録はありません</td></tr>';
+}
 function renderTenkoPreview(profile, ym, days, fallback){
   var preHeads=['実施日時','点呼方法','点呼執行者','検知器使用の有無','酒気帯びの有無','疾病・疲労・睡眠不足等の状況','日常点検の状況','その他必要な指示事項'];
   var postHeads=['実施日時','点呼方法','点呼執行者','検知器使用の有無','酒気帯びの有無','自動車・道路及び運行の状況','交替運転者に対する通告','その他必要な指示事項'];
@@ -2571,15 +3079,19 @@ function renderTenkoPreview(profile, ym, days, fallback){
     +'<tr><th rowspan="2">日付</th><th rowspan="2">運転者名／<br>車両番号</th><th colspan="8">業務前点呼</th><th colspan="8">業務後点呼</th></tr>'
     +'<tr>'+preHeads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+postHeads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr>'
     +'</thead><tbody>';
-  days.forEach(function(day){
-    var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
-    html+='<tr>'
-      +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
-      +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
-      +'<td>'+esc(timeOnly(pre.datetime))+'</td><td>'+esc(pre.method||'')+'</td><td>'+esc(pre.executor||'')+'</td><td>'+esc(pre.alcoholCheck||'')+'</td><td>'+esc(pre.drinking||'')+'</td><td class="al-l">'+esc(pre.condition||'')+'</td><td>'+esc(pre.inspection||'')+'</td><td class="al-l">'+esc(pre.note||'')+'</td>'
-      +'<td>'+esc(timeOnly(post.datetime))+'</td><td>'+esc(post.method||'')+'</td><td>'+esc(post.executor||'')+'</td><td>'+esc(post.alcoholCheck||'')+'</td><td>'+esc(post.drinking||'')+'</td><td class="al-l">'+esc(post.roadCondition||'')+'</td><td class="al-l">'+esc(post.handover||'')+'</td><td class="al-l">'+esc(post.note||'')+'</td>'
-      +'</tr>';
-  });
+  if(days.length===0){
+    html+=ledgerEmptyRowHtml(18);
+  } else {
+    days.forEach(function(day){
+      var t=day.tenko||{}; var pre=t.pre||{}, post=t.post||{};
+      html+='<tr>'
+        +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
+        +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
+        +'<td>'+esc(timeOnly(pre.datetime))+'</td><td>'+esc(methodStr(pre.method))+'</td><td>'+esc(pre.executor||'')+'</td><td>'+esc(pre.alcoholCheck||'')+'</td><td>'+esc(pre.drinking||'')+'</td><td class="al-l">'+esc(pre.condition||'')+'</td><td>'+esc(pre.inspection||'')+'</td><td class="al-l">'+esc(pre.note||'')+'</td>'
+        +'<td>'+esc(timeOnly(post.datetime))+'</td><td>'+esc(methodStr(post.method))+'</td><td>'+esc(post.executor||'')+'</td><td>'+esc(post.alcoholCheck||'')+'</td><td>'+esc(post.drinking||'')+'</td><td class="al-l">'+esc(post.roadCondition||'')+'</td><td class="al-l">'+esc(post.handover||'')+'</td><td class="al-l">'+esc(post.note||'')+'</td>'
+        +'</tr>';
+    });
+  }
   html+='</tbody></table>';
   html+='<div class="print-note">注1: 1人で事業を行う場合は、対面点呼の欄に○を記入してください。<br>注2: この記録は1年間保存してください。</div>';
   return html;
@@ -2592,17 +3104,21 @@ function renderGyomuPreview(profile, ym, days, fallback){
     +'<tr><th rowspan="2">日付</th><th rowspan="2">運転者名／<br>車両番号</th><th colspan="3">出発</th><th colspan="3">到着</th><th colspan="7">運行の状況</th></tr>'
     +'<tr>'+subHeads.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')+'</tr>'
     +'</thead><tbody>';
-  days.forEach(function(day){
-    var g=day.gyomu||{};
-    html+='<tr>'
-      +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
-      +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
-      +'<td class="al-l">'+esc(g.startPlace||'')+'</td><td>'+esc(timeOnly(g.startDatetime))+'</td><td>'+esc(g.startOdo?String(g.startOdo):'')+'</td>'
-      +'<td class="al-l">'+esc(g.endPlace||'')+'</td><td>'+esc(timeOnly(g.endDatetime))+'</td><td>'+esc(g.endOdo?String(g.endOdo):'')+'</td>'
-      +'<td>'+esc(ledgerDistance(day))+'</td><td class="al-l">'+esc(g.route||'')+'</td>'
-      +'<td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td>'
-      +'</tr>';
-  });
+  if(days.length===0){
+    html+=ledgerEmptyRowHtml(15);
+  } else {
+    days.forEach(function(day){
+      var g=day.gyomu||{};
+      html+='<tr>'
+        +'<td>'+esc(fmtYmdSlash(day.date))+'</td>'
+        +'<td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>'
+        +'<td class="al-l">'+esc(g.startPlace||'')+'</td><td>'+esc(timeOnly(g.startDatetime))+'</td><td>'+esc(g.startOdo?String(g.startOdo):'')+'</td>'
+        +'<td class="al-l">'+esc(g.endPlace||'')+'</td><td>'+esc(timeOnly(g.endDatetime))+'</td><td>'+esc(g.endOdo?String(g.endOdo):'')+'</td>'
+        +'<td>'+esc(ledgerDistance(day))+'</td><td class="al-l">'+esc(g.route||'')+'</td>'
+        +'<td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td><td class="al-l"></td>'
+        +'</tr>';
+    });
+  }
   html+='</tbody></table>';
   html+='<div class="print-note">注1: 荷主・荷物の種類が変わるたびに行を分けて記録してください。<br>注2: 走行距離計は出発時・到着時のメーター値をそのまま記入してください。<br>注3: この記録は1年間保存してください。</div>';
   return html;
@@ -2612,15 +3128,19 @@ function renderVehiclePreview(profile, ym, days, fallback){
   html+='<table class="print-table"><thead><tr><th>日付</th><th>運転者名／<br>車両番号</th>'
     +VC_LABELS.map(function(h){return '<th>'+esc(h)+'</th>';}).join('')
     +'<th>備考</th></tr></thead><tbody>';
-  days.forEach(function(day){
-    var v=day.vc||{};
-    html+='<tr><td>'+esc(fmtYmdSlash(day.date))+'</td><td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>';
-    for(var i=1;i<=15;i++){
-      var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
-      html+='<td>'+esc(mark)+'</td>';
-    }
-    html+='<td class="al-l"></td></tr>';
-  });
+  if(days.length===0){
+    html+=ledgerEmptyRowHtml(18);
+  } else {
+    days.forEach(function(day){
+      var v=day.vc||{};
+      html+='<tr><td>'+esc(fmtYmdSlash(day.date))+'</td><td class="al-l">'+driverVehicleHtml(day, fallback)+'</td>';
+      for(var i=1;i<=15;i++){
+        var mark = v['item'+i] ? (VC_MARK[v['item'+i]]||'') : '';
+        html+='<td>'+esc(mark)+'</td>';
+      }
+      html+='<td class="al-l"></td></tr>';
+    });
+  }
   html+='</tbody></table>';
   html+='<div class="print-note">注1: 異常なし＝○／要注意＝△／異常あり＝× で記入してください。<br>注2: 異常があった場合は備考欄に具体的な内容を記入してください。<br>注3: この記録は1年間保存してください。</div>';
   return html;
@@ -2643,17 +3163,149 @@ function openLedgerPreview(){
     var profile=data.profile, days=data.days, fallback=data.fallback;
     var r=monthRange(ym);
     document.getElementById('preview-subtitle').textContent = fmtYmdSlash(r.start)+' 〜 '+fmtYmdSlash(r.end);
-    document.getElementById('pv-panel-tenko').innerHTML = renderTenkoPreview(profile, ym, days, fallback);
-    document.getElementById('pv-panel-gyomu').innerHTML = renderGyomuPreview(profile, ym, days, fallback);
-    document.getElementById('pv-panel-vehicle').innerHTML = renderVehiclePreview(profile, ym, days, fallback);
+    document.getElementById('pv-panel-tenko').innerHTML = renderTenkoPreview(profile, ym, filterRecordedDays(days,'tenko'), fallback);
+    document.getElementById('pv-panel-gyomu').innerHTML = renderGyomuPreview(profile, ym, filterRecordedDays(days,'gyomu'), fallback);
+    document.getElementById('pv-panel-vehicle').innerHTML = renderVehiclePreview(profile, ym, filterRecordedDays(days,'vc'), fallback);
+    _lastPreviewMeta = {ym:ym, profile:profile, fallback:fallback};
     showPreviewPanel('tenko');
     go('ledger-preview');
     setExportStatus('','');
     document.getElementById('export-status').style.display='none';
+    var pdfStatusEl=document.getElementById('pdf-status');
+    if(pdfStatusEl) pdfStatusEl.style.display='none';
   }).catch(function(err){
     console.warn('帳票プレビューの準備に失敗しました', err);
     setExportStatus('⚠️ プレビューの準備に失敗しました: '+((err&&err.message)||'不明なエラー'),'err');
   }).finally(function(){ btn.disabled=false; });
+}
+
+/* ══════════════════════ 帳票PDF保存（html2canvas + jsPDF） ══════════════════════
+   プリンター/AirPrint非対応の環境でも、PDFファイルさえ手元にあれば
+   コンビニのネットプリント・PC転送・LINE/メール送付など、どの手段でも印刷できる。
+   これがPDF保存を作る一番の理由（window.print()はプリンターが無いと詰む）。
+
+   方式: 帳票プレビュー画面（openLedgerPreview()が組み立てた3つの.preview-panel）を
+   html2canvasで画像化し、jsPDFでA4横のPDFに貼り込む。
+   → 文字を画像として埋め込むので、jsPDF側で日本語フォントを埋め込む必要が無い
+     （日本語埋め込みフォントは数MBあり、スマホでは重く落ちやすいため意図的に避けている）。
+   html2canvas / jsPDF はExcelJSと同じく「押した時だけ」CDNから遅延ロードし、
+   読み込みに失敗してもアプリ本体は壊れない。
+
+   3種類（点呼簿・業務記録・日常点検記録簿）は提出物として3点セットで扱うことが多いため、
+   Excel出力と同じ考え方で1つのPDFに（表ごとにページを分けて）まとめている。 */
+var _pdfLibsPromise=null;
+function loadPdfLibs(){
+  if(window.jspdf && window.html2canvas) return Promise.resolve();
+  if(_pdfLibsPromise) return _pdfLibsPromise;
+  function loadScript(src){
+    return new Promise(function(resolve,reject){
+      var s=document.createElement('script');
+      s.src=src;
+      s.onload=function(){ resolve(); };
+      s.onerror=function(){ reject(new Error('通信環境をご確認ください')); };
+      document.head.appendChild(s);
+    });
+  }
+  _pdfLibsPromise=Promise.all([
+    loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js'),
+    loadScript('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js')
+  ]).catch(function(err){
+    _pdfLibsPromise=null;
+    throw new Error('PDF作成ライブラリの読み込みに失敗しました（'+(err&&err.message||'通信環境をご確認ください')+'）');
+  });
+  return _pdfLibsPromise;
+}
+function setPdfStatus(msg, cls){
+  var el=document.getElementById('pdf-status');
+  if(!el) return;
+  el.textContent=msg; el.className='export-status'+(cls?' '+cls:'');
+  el.style.display = msg ? 'block' : 'none';
+}
+function generateLedgerPdf(){
+  var btn=document.getElementById('pdf-save-btn');
+  if(!btn || btn.disabled) return;
+  var meta=_lastPreviewMeta;
+  if(!meta){
+    setPdfStatus('⚠️ 先に帳票を表示してください','err');
+    return;
+  }
+  var origLabel=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='⏳ 作成中…';
+  setPdfStatus('📚 PDF作成ライブラリを読み込み中…','');
+
+  var margin=8, pageW=297, pageH=210; // A4横(mm)
+  var usableW=pageW-margin*2, usableH=pageH-margin*2;
+  var pageUsed=false;
+
+  loadPdfLibs().then(function(){
+    setPdfStatus('🖨 帳票を画像化しています…（少し時間がかかります）','');
+    var jsPDFCtor=window.jspdf.jsPDF;
+    var pdf=new jsPDFCtor({orientation:'landscape',unit:'mm',format:'a4'});
+
+    function drawCanvas(canvas){
+      var pxPerMm=canvas.width/usableW;
+      var sliceHeightPx=Math.max(1,Math.floor(usableH*pxPerMm));
+      var offset=0;
+      while(offset<canvas.height){
+        var sliceH=Math.min(sliceHeightPx, canvas.height-offset);
+        var tmp=document.createElement('canvas');
+        tmp.width=canvas.width; tmp.height=sliceH;
+        var ctx=tmp.getContext('2d');
+        ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,tmp.width,tmp.height);
+        ctx.drawImage(canvas, 0, offset, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+        /* JPEGで圧縮する（PNGだと表の罫線・文字が細かく複雑な画像になり、
+           数十MB単位に膨れてスマホでの保存・LINE/メール添付が非現実的になったため）。
+           背景は白で塗ってからJPEG化するので、文字の可読性はほぼ落ちずサイズだけ大幅に減る。 */
+        var dataUrl=tmp.toDataURL('image/jpeg',0.92);
+        if(pageUsed){ pdf.addPage('a4','landscape'); }
+        var sliceHmm=sliceH/pxPerMm;
+        pdf.addImage(dataUrl,'JPEG',margin,margin,usableW,sliceHmm);
+        pageUsed=true;
+        offset+=sliceH;
+      }
+    }
+
+    /* display:none の.preview-panelはhtml2canvasが正しく撮れない（0サイズになる）ため、
+       1枚ずつ showPreviewPanel() で画面上に表示してから撮る。終わったら元のタブ表示に戻す。 */
+    var kinds=['tenko','gyomu','vehicle'];
+    var originalActiveKind = kinds.filter(function(k){
+      var t=document.getElementById('pv-tab-'+k);
+      return t && t.classList.contains('active');
+    })[0] || 'tenko';
+    var chain=Promise.resolve();
+    kinds.forEach(function(kind){
+      chain=chain.then(function(){
+        showPreviewPanel(kind);
+        var el=document.getElementById('pv-panel-'+kind);
+        if(!el) return null;
+        /* .preview-panel は overflow-x:auto で表(.print-table)が横にはみ出す前提のため、
+           width/height/windowWidth を明示して scrollWidth 全体を描画対象にする
+           （指定しないとスクロール分が切れて右端が欠けたPDFになる）。 */
+        return window.html2canvas(el, {
+          scale:2, backgroundColor:'#ffffff',
+          width: el.scrollWidth, height: el.scrollHeight,
+          windowWidth: el.scrollWidth, windowHeight: el.scrollHeight
+        });
+      }).then(function(canvas){
+        if(canvas) drawCanvas(canvas);
+      });
+    });
+    return chain.then(function(){
+      showPreviewPanel(originalActiveKind);
+      return pdf;
+    });
+  }).then(function(pdf){
+    var driverName=(meta.profile&&meta.profile.name)||(meta.fallback&&meta.fallback.name)||'';
+    var fname='運行記録帳票_'+meta.ym+(driverName?('_'+driverName):'')+'.pdf';
+    pdf.save(fname);
+    setPdfStatus('✅ PDFを保存しました。「ファイル」アプリなどから確認できます','ok');
+  }).catch(function(err){
+    console.warn('PDF作成に失敗しました', err);
+    setPdfStatus('⚠️ PDF作成に失敗しました: '+((err&&err.message)||'不明なエラー'),'err');
+  }).finally(function(){
+    btn.disabled=false; btn.textContent=origLabel;
+  });
 }
 
 // テスト版バッジ表示(IS_STAGINGがtrueのときだけ)
