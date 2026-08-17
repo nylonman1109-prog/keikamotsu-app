@@ -262,10 +262,10 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .fc-datebar input{width:auto;flex:none;padding:9px 10px;font-size:13px;}
 .fc-datebar .fc-today-btn{border:2px solid var(--border);background:#fff;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;color:var(--sub);cursor:pointer;}
 .fc-datebar .fc-today-btn:active{background:var(--money-light);color:var(--money);border-color:var(--money);}
-/* 運行記録：過去日を見ているときの状態表示（施錠中＝赤／解錠中＝緑） */
+/* 運行記録：今日以外の日を編集しているときの注意帯（橙）。
+   過去日でも編集できる仕様なので、禁止ではなく「日付の取り違え防止」の表示。 */
 .drive-lock-note{display:none;font-size:11px;font-weight:700;border-radius:8px;padding:8px 11px;margin:0 2px 10px;line-height:1.6;}
-.drive-lock-note.locked{display:block;background:var(--bad-light);color:var(--bad);}
-.drive-lock-note.unlocked{display:block;background:var(--good-light);color:var(--good);}
+.drive-lock-note.editing{display:block;background:var(--warn-light);color:var(--warn);}
 .fc-item{background:var(--card);border-radius:12px;padding:11px 14px;margin-bottom:8px;box-shadow:var(--shadow);border-left:5px solid var(--border);}
 .fc-item.fc-ok{border-left-color:var(--good);}
 .fc-item.fc-ng{border-left-color:var(--bad);}
@@ -1321,37 +1321,18 @@ var countVal=0, goalTarget=100, workDays=22;
 var countDate = null;
 function isCountDateToday(){ return !countDate || countDate===todayKey(); }
 
-/* ══════════════════════ 運行記録の対象日と、過去日修正の解錠 ══════════════════════
-   点呼簿・業務簿・車両点検は提出書類なので、既定では「今日」しか書けない。
-   入れ忘れた日を直したいときは、まとめ役が対象者の修正を一時的に許可する。
-
+/* ══════════════════════ 運行記録の対象日 ══════════════════════
    ・driveDate … 運行記録タブで見ている日（既定=今日）
-   ・解錠フラグ … users/{uid}/profile/editUnlockUntil （ミリ秒。今より未来なら解錠中）
-     このフラグは DBルールで「まとめ役だけが書ける」ようにしているため、
-     ドライバーが自分で解錠することはできない。
-   ・まとめ役本人は常に過去日を修正できる。 */
+
+   過去日の修正は **誰でもいつでもできる**（2026-08-17 北上さん判断）。
+   以前は「提出書類だから今日しか書けない。まとめ役が一時的に解錠する」仕組み
+   （users/{uid}/profile/editUnlockUntil）だったが、入れ忘れに気づいた本人が
+   その場で直せないほうが実害が大きいため撤去した。
+   ※ DB側の editUnlockUntil ルールは残してあるが、アプリはもう読み書きしない。
+   代わりに「今日以外を編集中」であることを画面に必ず出し、日付の取り違えを防ぐ。 */
 var driveDate = null;
-var editUnlockUntil = 0;
 function isDriveDateToday(){ return !driveDate || driveDate===todayKey(); }
-function canEditPast(){
-  if(isManager) return true;
-  return editUnlockUntil > Date.now();
-}
-/* 今この瞬間、driveDate に保存してよいか */
-function canSaveDriveDate(){ return isDriveDateToday() || canEditPast(); }
 function driveDateKey(){ return driveDate || todayKey(); }
-/* 保存の直前に必ず通す関門。過去日で権限が無ければ保存させない。 */
-function guardDriveSave(){
-  if(canSaveDriveDate()) return true;
-  toast('🔒 過去の日は編集できません。まとめ役に修正の許可を頼んでください');
-  return false;
-}
-function unlockRemainText(){
-  var ms=editUnlockUntil-Date.now();
-  if(ms<=0) return '';
-  var h=Math.floor(ms/3600000), m=Math.ceil((ms%3600000)/60000);
-  return h>0 ? ('あと約'+h+'時間') : ('あと約'+m+'分');
-}
 var chartData=[];
 var authMode='login';
 
@@ -1649,8 +1630,6 @@ function finishInit(){
   currentProfile.status = status;
   goalTarget = currentProfile.targetCount || 100;
   workDays = currentProfile.workDaysPerMonth || 22;
-  /* まとめ役が出した「過去日の修正許可」の期限。切れていれば0扱い。 */
-  editUnlockUntil = Number(currentProfile.editUnlockUntil) || 0;
   document.getElementById('header-username').textContent = 'ログイン中: '+(currentProfile.name||currentUser.email)+'さん';
   document.getElementById('header-avatar').textContent = (currentProfile.name||'ド').charAt(0);
   document.getElementById('btn-team').style.display = isManager ? 'flex' : 'none';
@@ -2176,7 +2155,7 @@ function loadDriveToday(){
   /* タブを開くたび今日に戻す（前回見ていた過去日のまま記録してしまう事故を防ぐ） */
   driveDate = todayKey();
   var di=document.getElementById('drive-date-input'); if(di) di.value=driveDate;
-  refreshDriveLockUI();
+  refreshDriveDateNote();
   loadTenko();
   loadGyomu();
   loadVehicleCheck();
@@ -2188,39 +2167,27 @@ function onDriveDateChange(){
   var v=document.getElementById('drive-date-input').value;
   if(!v) return;                    // 空にされたら前の日付を保つ
   driveDate=v;
-  refreshDriveLockUI();
+  refreshDriveDateNote();
   loadTenko(); loadGyomu(); loadVehicleCheck();
 }
 function driveDateToday(){
   driveDate=todayKey();
   document.getElementById('drive-date-input').value=driveDate;
-  refreshDriveLockUI();
+  refreshDriveDateNote();
   loadTenko(); loadGyomu(); loadVehicleCheck();
 }
-/* 今の日付と権限に合わせて、案内文と入力可否を切り替える */
-function refreshDriveLockUI(){
+/* 今日以外の日を開いているときだけ、注意帯を出す。
+   編集は止めない（誰でも過去日を直せる仕様）。狙いは「今日のつもりで別の日に
+   保存してしまう」事故を防ぐこと。今日に戻れば帯は消える。 */
+function refreshDriveDateNote(){
   var note=document.getElementById('drive-lock-note');
-  var locked = !canSaveDriveDate();
-  if(note){
-    if(isDriveDateToday()){
-      note.className='drive-lock-note'; note.textContent='';
-    } else if(locked){
-      note.className='drive-lock-note locked';
-      note.textContent='🔒 '+fmtDriveDate()+'は過去の日です。提出書類のため編集できません。直したいときはまとめ役に「修正の許可」を頼んでください。';
-    } else {
-      note.className='drive-lock-note unlocked';
-      note.textContent='🔓 '+fmtDriveDate()+'を編集できます'+(isManager?'（まとめ役のため常時可）':'（修正の許可あり／'+unlockRemainText()+'）');
-    }
+  if(!note) return;
+  if(isDriveDateToday()){
+    note.className='drive-lock-note'; note.textContent='';
+  } else {
+    note.className='drive-lock-note editing';
+    note.textContent='✏️ 今日ではなく '+fmtDriveDate()+' を編集しています。保存すると '+fmtDriveDate()+' の記録になります。';
   }
-  /* 施錠中は入力欄そのものを触れなくする（書けたのに保存で弾かれる、を避ける） */
-  ['sub-tenko','sub-gyomu','sub-vehicle'].forEach(function(id){
-    var panel=document.getElementById(id); if(!panel) return;
-    panel.querySelectorAll('input,select,textarea,button').forEach(function(el){
-      if(el.classList.contains('subtab-btn')) return;
-      el.disabled = locked;
-    });
-    panel.style.opacity = locked ? '.55' : '';
-  });
 }
 function fmtDriveDate(){
   var d=new Date(driveDateKey()+'T00:00:00');
@@ -2276,7 +2243,6 @@ function rememberVehicle(v){
   dref('users/'+currentUser.uid+'/profile/vehicle').set(v);
 }
 function saveTenko(){
-  if(!guardDriveSave()) return;
   var data={
     driver:val('tenko-driver'), vehicle:val('tenko-vehicle'),
     pre:{
@@ -2335,7 +2301,6 @@ function loadGyomu(){
   });
 }
 function saveGyomu(){
-  if(!guardDriveSave()) return;
   var data={
     driver:val('gyomu-driver'), vehicle:val('gyomu-vehicle'),
     startPlace:val('gyomu-start-place'), startDatetime:val('gyomu-start-datetime'), startOdo:num(val('gyomu-start-odo')),
@@ -2360,7 +2325,6 @@ function loadVehicleCheck(){
   });
 }
 function saveVehicleCheck(){
-  if(!guardDriveSave()) return;
   var data={};
   for(var i=1;i<=15;i++){ data['item'+i]=getCheckValue('vc'+i); }
   data.updatedAt=firebase.database.ServerValue.TIMESTAMP;
@@ -2421,8 +2385,7 @@ function loadTeam(){
           status:profileStatus(profile), email:profile.email||'',
           createdAt:profile.createdAt||0, lastLoginAt:profile.lastLoginAt||0,
           target:profile.targetCount||100, todayCount:today.count||0,
-          profit:stats.sales-stats.expenseTotal,
-          unlockUntil:Number(profile.editUnlockUntil)||0
+          profit:stats.sales-stats.expenseTotal
         };
       });
     }));
@@ -2452,38 +2415,14 @@ function loadTeam(){
       var badge = r.role==='manager' ? '<span class="badge-leader">まとめ役</span>' : '';
       var cls = r.profit>=0?'good':'bad';
       var stopBtn = r.role==='manager' ? '' : '<button class="team-btn stop" onclick="suspendUser(\''+r.uid+'\')">利用停止</button>';
-      /* 過去日の修正許可。まとめ役自身は常に修正できるのでボタンを出さない。 */
-      var unlocked = r.unlockUntil > Date.now();
-      var unlockBtn = r.role==='manager' ? '' :
-        (unlocked
-          ? '<button class="team-btn stop" onclick="lockPastEdit(\''+r.uid+'\')">修正を締める</button>'
-          : '<button class="team-btn approve" onclick="unlockPastEdit(\''+r.uid+'\')">修正を許可</button>');
-      var unlockNote = unlocked ? '<div class="team-sub" style="color:var(--good);font-weight:700">🔓 過去日の修正を許可中（'+fmtDateTime(r.unlockUntil)+'まで）</div>' : '';
       return '<div class="team-item"><div class="team-avatar">'+esc((r.name||'ド').charAt(0))+'</div>'+
         '<div class="team-info"><div class="team-name">'+esc(r.name)+badge+'</div>'+
         '<div class="team-sub">今日 '+r.todayCount+'/'+r.target+'個 ・ '+Number(ym.slice(5,7))+'月</div>'+
         '<div class="team-sub">'+esc(r.email||'（メール未登録）')+'</div>'+
-        '<div class="team-sub">最終ログイン: '+fmtDateTime(r.lastLoginAt)+'</div>'+unlockNote+'</div>'+
-        '<div class="team-actions"><div class="team-profit '+cls+'">'+yenSigned(r.profit)+'</div>'+stopBtn+unlockBtn+'</div></div>';
+        '<div class="team-sub">最終ログイン: '+fmtDateTime(r.lastLoginAt)+'</div></div>'+
+        '<div class="team-actions"><div class="team-profit '+cls+'">'+yenSigned(r.profit)+'</div>'+stopBtn+'</div></div>';
     }).join('');
   });
-}
-/* 過去日の修正を24時間だけ許可する。
-   期限を持たせるのは、開けっ放しで提出済みの記録がいつまでも書き換え可能になるのを防ぐため。
-   このフラグは firebase_rules.json で「まとめ役だけが書ける」ようにしてある。 */
-var PAST_EDIT_UNLOCK_HOURS = 24;
-function unlockPastEdit(uid){
-  var until = Date.now() + PAST_EDIT_UNLOCK_HOURS*3600000;
-  dref('users/'+uid+'/profile/editUnlockUntil').set(until).then(function(){
-    toast('🔓 過去日の修正を許可しました（'+PAST_EDIT_UNLOCK_HOURS+'時間）');
-    loadTeam();
-  }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
-}
-function lockPastEdit(uid){
-  dref('users/'+uid+'/profile/editUnlockUntil').set(0).then(function(){
-    toast('🔒 過去日の修正を締めました');
-    loadTeam();
-  }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
 }
 function approveUser(uid){
   dref('users/'+uid+'/profile/status').set('approved').then(function(){
@@ -2759,13 +2698,30 @@ function showCalDetail(dk){
   var gyomuOk=!!(g && g.updatedAt), vcOk=!!(v && v.updatedAt);
   var d=document.getElementById('cal-detail');
   d.style.display='block';
+  /* 抜けを見つけたその場で直せるように、点呼簿タブをその日で開くボタンを出す。
+     他メンバーを見ているとき（まとめ役）は出さない。押すと自分の記録として
+     その日を編集することになり、取り違えの元になるため。 */
+  var isSelf = calTargetUid()===currentUser.uid;
+  var jumpBtn = isSelf
+    ? '<button class="export-btn secondary" style="margin-top:10px" onclick="jumpToDriveDate(\''+dk+'\')">✏️ この日を入力・修正する</button>'
+    : '';
   d.innerHTML = '<div class="cal-detail-date">'+fmtYmdSlash(dk)+'</div>'
     +'<div class="fc-pills">'
       +'<span class="fc-pill '+(preOk?'ok':'ng')+'">乗務前'+(preOk?'◯':'✗')+'</span>'
       +'<span class="fc-pill '+(postOk?'ok':'ng')+'">乗務後'+(postOk?'◯':'✗')+'</span>'
       +'<span class="fc-pill '+(gyomuOk?'ok':'ng')+'">業務簿'+(gyomuOk?'◯':'✗')+'</span>'
       +'<span class="fc-pill '+(vcOk?'ok':'ng')+'">車両点検'+(vcOk?'◯':'✗')+'</span>'
-    +'</div>';
+    +'</div>'+jumpBtn;
+}
+/* カレンダーで選んだ日を、点呼簿タブにそのまま持っていく（記入漏れの直し方の主動線）。
+   loadDriveToday() は今日に戻してしまうので、ここでは呼ばずに個別に読み直す。 */
+function jumpToDriveDate(dk){
+  driveDate = dk;
+  var di=document.getElementById('drive-date-input'); if(di) di.value=dk;
+  refreshDriveDateNote();
+  loadTenko(); loadGyomu(); loadVehicleCheck();
+  showSub('tenko');
+  if(dk!==todayKey()) toast('✏️ '+fmtDriveDate()+'を開きました');
 }
 
 /* ══════════════════════ 帳票Excel出力（点呼簿・業務簿・車両点検） ══════════════════════
