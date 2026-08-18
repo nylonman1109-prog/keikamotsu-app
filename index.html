@@ -9,9 +9,11 @@
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#1565C0">
 
-<!-- iOS向け(Safariはmanifestのアイコンやテーマカラーを見ないため個別指定) -->
+<!-- iOS向け(Safariはmanifestのアイコンやテーマカラーを見ないため個別指定)
+     ※ apple-mobile-web-app-status-bar-style="black-translucent" は入れないこと。
+       入れるとiPhoneのステータスバー(時計・Dynamic Island)がアプリ画面に重なり、
+       上部がタップできなくなる（2026-08-18 実機で発生したため削除）。 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="軽貨物まるごと">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
 
@@ -124,13 +126,6 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .chart-detail.show{display:block;}
 
 .section-label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin:10px 2px 6px;}
-.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-.btn-g{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;border:none;border-radius:var(--radius);cursor:pointer;box-shadow:var(--shadow);transition:transform .12s;text-align:center;}
-.btn-g:active{transform:scale(.96);}
-.bg-in{background:linear-gradient(135deg,#00838F,#26A69A);}
-.btn-g-icon{font-size:24px;margin-bottom:4px;}
-.btn-g-title{font-size:13px;font-weight:800;color:white;}
-.btn-g-desc{font-size:10px;color:rgba(255,255,255,.85);margin-top:1px;}
 
 .note{background:#FFFDE7;border:1px solid #FFD54F;border-radius:10px;padding:9px 12px;font-size:11px;color:#795548;line-height:1.6;margin:4px 2px 0;}
 
@@ -157,6 +152,10 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .check-opt.ok.active{border-color:var(--good);background:var(--good-light);}
 .check-opt.warn.active{border-color:var(--warn);background:var(--warn-light);}
 .check-opt.ng.active{border-color:var(--bad);background:var(--bad-light);}
+/* 画面の一番下に置く戻るボタン。上部はステータスバーと重なるため、
+   戻る操作はここ（親指の届く位置）に置いている。 */
+.btn-back-bottom{width:100%;padding:14px;margin-top:18px;background:var(--card);border:1.5px solid var(--border);border-radius:12px;font-size:13px;font-weight:700;color:var(--sub);cursor:pointer;box-shadow:var(--shadow);}
+.btn-back-bottom:active{background:var(--bg);}
 .btn-back{background:rgba(255,255,255,.2);border:none;color:white;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .subheader h1{font-size:17px;font-weight:700;flex:1;}
 .subheader-sub{font-size:11px;opacity:.85;}
@@ -396,6 +395,12 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .modal-sub{font-size:12px;color:var(--sub);text-align:center;margin-bottom:18px;line-height:1.6;}
 
 /* まとめ役向け：承認待ちバナー（ホーム上部） */
+/* ホーム下部のアカウント操作（設定・全員を見る・ログアウト）。
+   画面最上部はiPhoneのステータスバーと重なるため、操作系はここに集約している。 */
+.account-row{display:flex;flex-direction:column;gap:8px;margin-top:16px;}
+.account-btn{width:100%;padding:14px;background:var(--card);border:1.5px solid var(--border);border-radius:12px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;gap:5px;}
+.account-btn:active{background:var(--bg);}
+.account-btn.logout{color:var(--sub);font-weight:600;}
 .pending-banner{display:none;align-items:center;justify-content:center;gap:6px;background:linear-gradient(135deg,#F9A825,#F57F17);color:#fff;font-size:12px;font-weight:800;padding:11px 16px;text-align:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);}
 .pending-banner:active{opacity:.85;}
 
@@ -500,17 +505,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
 <!-- ═══ ホーム ═══ -->
 <div id="home" class="screen">
+  <!-- ヘッダーは「表示だけ」。ボタンは一切置かない。
+       iPhoneのステータスバー(時計・Dynamic Island)と重なってタップが吸われ、
+       押せない/反応しないという報告があったため、操作するものは全て画面下部へ移した。 -->
   <div class="header">
-    <div class="header-top">
-      <div class="header-user" style="cursor:pointer" onclick="go('settings')"><span class="header-avatar" id="header-avatar">−</span><span id="header-username">ログイン中…</span><span style="font-size:10px;opacity:.75;margin-left:2px">▸</span></div>
-      <div class="header-actions">
-        <button class="header-manage" id="btn-team" onclick="go('team')" style="display:none">👥 全員を見る<span class="team-count-badge" id="team-badge"></span></button>
-        <button class="header-manage" onclick="logout()">🚪</button>
-      </div>
-    </div>
     <div class="header-title">
       <div class="header-greeting">お疲れ様です</div>
-      <div class="header-name">🚛 今日もお疲れ様です</div>
+      <div class="header-name">🚛 <span id="header-username">…</span></div>
     </div>
   </div>
   <div class="pending-banner" id="pending-banner" onclick="go('team')">⚠️ 承認待ちが<span id="pending-banner-count">0</span>件あります　▸ タップで確認</div>
@@ -529,13 +530,13 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       </div>
     </div>
 
-    <!-- 今日の目標（月間目標からの逆算。配達個数タブの「目標設定」の数字が変わると自動で再計算されます） -->
+    <!-- 今日の目標（月間目標からの逆算。「売上」タブの「目標設定」の数字が変わると自動で再計算されます） -->
     <div class="today-goal-card state-ontrack" id="today-goal-card">
       <div class="today-goal-main" id="today-goal-main">今日の目標　<b>100個</b></div>
       <div class="today-goal-sub" id="today-goal-sub">今月あと0個 ／ 残り0日</div>
     </div>
 
-    <!-- 達成率ゲージ（配達個数画面で入力した数がここに反映されます） -->
+    <!-- 達成率ゲージ（「売上」タブで入力した個数がここに反映されます） -->
     <div class="goal-card">
       <div class="goal-top"><span class="goal-title">🎯 今日の配達</span><span class="goal-num"><b id="goal-count">0</b> / <span id="goal-target">100</span> 個</span></div>
       <div class="goal-bar-track"><div class="goal-bar-fill yellow" id="goal-bar" style="width:0%"></div></div>
@@ -552,17 +553,22 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       <div class="chart-detail" id="chart-detail"></div>
     </div>
 
-    <div class="btn-grid" style="grid-template-columns:1fr;">
-      <button class="btn-g bg-in" onclick="go('income')" style="padding:16px 8px;"><span class="btn-g-icon">💰</span><span class="btn-g-title">収入を記録</span><span class="btn-g-desc">個数 × 単価</span></button>
-    </div>
 
-    <div class="note">💡 レシート・配達個数・点呼簿・業務簿は下部タブ（レシート／個数／運行記録）から記録できます。</div>
+    <div class="note">💡 レシート・売上・点呼簿・業務簿は下部タブ（レシート／売上／運行記録）から記録できます。</div>
+
+    <!-- アカウント操作。以前はヘッダー(画面最上部)にあったが、ステータスバーと重なって
+         押せないため下部へ移設した。ここなら親指が届く位置で確実に押せる。 -->
+    <div class="account-row">
+      <button class="account-btn" onclick="go('settings')">⚙️ 設定（氏名・会社名など）</button>
+      <button class="account-btn" id="btn-team" onclick="go('team')" style="display:none">👥 全員を見る<span class="team-count-badge" id="team-badge"></span></button>
+      <button class="account-btn logout" onclick="logout()">🚪 ログアウト</button>
+    </div>
   </div>
 </div>
 
 <!-- ═══ ユーザー情報設定（ヘッダーの「ログイン中: ◯◯さん」をタップして開く） ═══ -->
 <div id="settings" class="screen">
-  <div class="subheader drive"><button class="btn-back" onclick="go('home')">‹</button><div><h1>ユーザー情報設定</h1><div class="subheader-sub">氏名・会社名などの登録内容</div></div></div>
+  <div class="subheader drive"><div><h1>ユーザー情報設定</h1><div class="subheader-sub">氏名・会社名などの登録内容</div></div></div>
   <div class="form-body">
     <div class="section">
       <div class="section-title">🙍 基本情報</div>
@@ -595,27 +601,48 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
     </div>
     <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--money);" onclick="saveProfileSettings()">この内容を保存する</button>
     <div id="settings-msg" style="display:none;font-size:12px;font-weight:700;margin-top:8px;text-align:center;"></div>
-    <div class="note" style="margin-top:14px;">🎯 1日の目標配達個数・今月の稼働予定日数は「配達個数」タブの<span class="profit-link" style="cursor:pointer" onclick="go('count')">目標設定へ ▸</span></div>
+    <div class="note" style="margin-top:14px;">🎯 1日の目標配達個数・今月の稼働予定日数は「売上」タブの<span class="profit-link" style="cursor:pointer" onclick="go('income')">目標設定へ ▸</span></div>
+    <button class="btn-back-bottom" onclick="go('home')">‹ ホームに戻る</button>
   </div>
 </div>
 
-<!-- ═══ 収入記録 ═══ -->
+<!-- ═══ 売上・個数（もとは「収入記録」と「配達個数」の2画面。同じ個数を2か所で
+     入力させるのは分かりにくいという声を受けて1画面に統合した。
+     個数は deliveries/{日付}、売上は income に、1回の保存でまとめて書く。） ═══ -->
 <div id="income" class="screen">
-  <div class="subheader" style="background:var(--income)"><button class="btn-back" onclick="go('home')">‹</button><div><h1>収入を記録</h1><div class="subheader-sub">個数 × 単価で売上を計上</div></div></div>
+  <!-- subheaderに戻るボタンは置かない（画面最上部はステータスバーと重なって押せないため）。
+       この画面は下部タブ「売上」からいつでも開ける。 -->
+  <div class="subheader" style="background:var(--income)"><div><h1>売上・個数を記録</h1><div class="subheader-sub">日付を選んで、個数と売上をまとめて記録</div></div></div>
   <div class="form-body">
-    <div class="section">
-      <div class="section-title">💰 売上入力</div>
-      <div class="q"><div class="q-label">日付</div><input type="date" class="field" id="in-date"></div>
-      <div class="q"><div class="q-label">内容</div><input type="text" class="field" id="in-content" placeholder="例）ライトランス 八戸便"></div>
-      <div class="q"><div class="row2">
-        <div><div class="q-label">個数</div><input type="text" inputmode="numeric" class="field" id="in-count" value="0" oninput="calcIncomeLive()"></div>
-        <div><div class="q-label">単価</div><input type="text" inputmode="numeric" class="field" id="in-unit" value="0" oninput="calcIncomeLive()"></div>
-      </div></div>
-      <div style="font-size:11px;color:var(--money);background:var(--money-light);border-radius:8px;padding:7px 10px;margin:6px 0 0;line-height:1.5;">🔗 個数は「配達個数」画面で入力した今日の数と連動しています（必要ならここで上書きできます）</div>
-      <div class="q"><div class="q-label">売上</div><div id="in-calc" style="background:var(--income-light);color:var(--income);border-radius:10px;padding:12px 14px;font-size:20px;font-weight:800;text-align:center;">¥0</div></div>
+    <div class="fc-datebar">
+      <input type="date" class="field" id="in-date" onchange="onEarnDateChange()">
+      <button type="button" class="fc-today-btn" onclick="earnDateToday()">今日</button>
     </div>
-    <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--income);" onclick="saveIncome()">この売上を記録する</button>
-    <div style="height:14px"></div>
+    <div class="drive-lock-note" id="earn-date-note"></div>
+
+    <div class="section">
+      <div class="section-title">📦 配達個数</div>
+      <input type="text" inputmode="numeric" pattern="[0-9]*" class="count-big-input" id="in-count" value="0" oninput="onEarnCountInput()" onblur="onEarnCountBlur()">
+      <div style="font-size:12px;color:var(--sub);text-align:center;margin-top:4px" id="count-remain">目標 100個 ・ あと100個</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">💰 売上</div>
+      <div class="q"><div class="q-label">内容</div><input type="text" class="field" id="in-content" placeholder="例）ライトランス 八戸便"></div>
+      <div class="q"><div class="q-label">単価（1個あたり）</div><input type="text" inputmode="numeric" class="field" id="in-unit" value="0" oninput="calcIncomeLive()"></div>
+      <div class="q" style="margin-bottom:0"><div class="q-label">売上（個数 × 単価）</div><div id="in-calc" style="background:var(--income-light);color:var(--income);border-radius:10px;padding:12px 14px;font-size:20px;font-weight:800;text-align:center;">¥0</div></div>
+    </div>
+
+    <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--income);" onclick="saveEarn()">この日の個数と売上を記録する</button>
+    <div style="font-size:11px;color:var(--sub);background:var(--bg);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5;">💡 同じ日をもう一度保存すると、その日の記録を上書きします（二重に計上されません）。単価が0のときは個数だけ記録します。</div>
+
+    <div class="section-label" style="margin-left:2px">目標設定</div>
+    <div class="section" style="padding:12px 14px">
+      <div class="q"><div class="q-label">1日の目標個数</div><input type="text" inputmode="numeric" class="field" id="target-input" value="100" onchange="saveTarget()"></div>
+      <div class="q" style="margin-bottom:0"><div class="q-label">今月の稼働予定日数</div><input type="text" inputmode="numeric" class="field" id="workdays-input" value="22" onchange="saveWorkDays()"></div>
+    </div>
+    <div style="font-size:11px;color:var(--sub);margin:8px 2px 0;line-height:1.5;">🎯 この2つの数字から、ホームの「今日の目標」を自動で計算します（月間目標＝1日の目標×稼働予定日数）</div>
+
     <div class="section-label" style="margin-left:2px">今月の収入</div>
     <div id="income-list"><div class="empty">読み込み中…</div></div>
   </div>
@@ -623,7 +650,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
 <!-- ═══ 経費記録（レシート読取＋税率） ═══ -->
 <div id="expense" class="screen">
-  <div class="subheader expense"><button class="btn-back" onclick="go('home')">‹</button><div><h1>経費を記録</h1><div class="subheader-sub">撮って、行ごとに経費を選ぶ</div></div></div>
+  <div class="subheader expense"><div><h1>経費を記録</h1><div class="subheader-sub">撮って、行ごとに経費を選ぶ</div></div></div>
   <div class="form-body">
 
     <input type="file" id="receipt-file-input" accept="image/*" style="display:none" onchange="onReceiptFileSelected(event)">
@@ -660,34 +687,9 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
   </div>
 </div>
 
-<!-- ═══ 配達個数 ═══ -->
-<div id="count" class="screen">
-  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>配達個数</h1><div class="subheader-sub">日付を選んで完了数を記録</div></div></div>
-  <div class="form-body">
-    <!-- 日付を選べるようにする。以前は「今日」固定で、過去の日を入れても today に上書き保存されていた -->
-    <div class="fc-datebar">
-      <input type="date" class="field" id="count-date-input" onchange="onCountDateChange()">
-      <button type="button" class="fc-today-btn" onclick="countDateToday()">今日</button>
-    </div>
-    <div class="count-input-card">
-      <div class="q-label" style="color:var(--sub)" id="count-date">今日</div>
-      <input type="text" inputmode="numeric" pattern="[0-9]*" class="count-big-input" id="count-val" value="0" oninput="onCountInput()" onblur="onCountBlur()">
-      <div style="font-size:12px;color:var(--sub)" id="count-remain">目標 100個 ・ あと100個</div>
-    </div>
-    <button style="width:100%;padding:15px;color:white;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);background:var(--money);" onclick="saveCount()">この個数を記録する</button>
-    <div style="font-size:11px;color:var(--money);background:var(--money-light);border-radius:8px;padding:7px 10px;margin-top:10px;line-height:1.5;">🔗 この数はホームの達成率ゲージ・収入記録の個数欄に自動で反映されます</div>
-    <div class="section-label" style="margin-left:2px">目標設定</div>
-    <div class="section" style="padding:12px 14px">
-      <div class="q"><div class="q-label">1日の目標個数</div><input type="text" inputmode="numeric" class="field" id="target-input" value="100" onchange="saveTarget()"></div>
-      <div class="q" style="margin-bottom:0"><div class="q-label">今月の稼働予定日数</div><input type="text" inputmode="numeric" class="field" id="workdays-input" value="22" onchange="saveWorkDays()"></div>
-    </div>
-    <div style="font-size:11px;color:var(--sub);margin:8px 2px 0;line-height:1.5;">🎯 この2つの数字から、ホームの「今日の目標」を自動で計算します（月間目標＝1日の目標×稼働予定日数）</div>
-  </div>
-</div>
-
 <!-- ═══ 運行記録（点呼簿・業務簿・車両点検をまとめたタブ） ═══ -->
 <div id="drive" class="screen">
-  <div class="subheader drive"><button class="btn-back" onclick="go('home')">‹</button><div><h1>運行記録</h1><div class="subheader-sub">点呼簿・業務簿・車両点検</div></div></div>
+  <div class="subheader drive"><div><h1>運行記録</h1><div class="subheader-sub">点呼簿・業務簿・車両点検</div></div></div>
   <div class="form-body">
 
     <!-- 帳票Excel出力（点呼簿・業務簿・車両点検をまとめて出力） -->
@@ -875,7 +877,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
      点呼記録簿／業務記録／日常点検記録簿の3種類を上のタブで切り替える（.no-printなので印刷時は隠れる）。
      印刷時に見せたい範囲は #ledger-preview .preview-panel.active だけ（297行付近の@media printのCSS参照）。 -->
 <div id="ledger-preview" class="screen">
-  <div class="subheader drive no-print"><button class="btn-back" onclick="go('drive')">‹</button><div><h1>帳票プレビュー</h1><div class="subheader-sub" id="preview-subtitle">対象期間を読み込み中…</div></div></div>
+  <div class="subheader drive no-print"><div><h1>帳票プレビュー</h1><div class="subheader-sub" id="preview-subtitle">対象期間を読み込み中…</div></div></div>
   <div class="preview-wrap">
     <div class="subtab-row no-print">
       <button class="subtab-btn active" id="pv-tab-tenko" onclick="showPreviewPanel('tenko')">🖐️ 点呼記録簿</button>
@@ -895,6 +897,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       <b>🤖 Android（Chrome）の場合</b>：印刷プレビューが開いたら「送信先」の一覧から「PDFに保存」を選ぶとPDFとして保存できます。
     </div>
 
+    <button class="btn-back-bottom no-print" onclick="go('drive')" style="margin-top:0;margin-bottom:14px;">‹ 運行記録に戻る</button>
     <div class="preview-panel active" id="pv-panel-tenko"><div class="empty">読み込み中…</div></div>
     <div class="preview-panel" id="pv-panel-gyomu"><div class="empty">読み込み中…</div></div>
     <div class="preview-panel" id="pv-panel-vehicle"><div class="empty">読み込み中…</div></div>
@@ -903,7 +906,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
 <!-- ═══ 月次レポート（簡易） ═══ -->
 <div id="report" class="screen">
-  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>月次レポート</h1><div class="subheader-sub">損益・税率別の内訳</div></div></div>
+  <div class="subheader money"><div><h1>月次レポート</h1><div class="subheader-sub">損益・税率別の内訳</div></div></div>
   <div class="form-body">
     <div class="section" style="padding:16px 18px;text-align:center;">
       <div style="font-size:12px;color:var(--sub);font-weight:700;" id="report-month">読み込み中</div>
@@ -922,7 +925,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
 <!-- ═══ まとめ役ビュー（全員を見る） ═══ -->
 <div id="team" class="screen">
-  <div class="subheader money"><button class="btn-back" onclick="go('home')">‹</button><div><h1>全員を見る</h1><div class="subheader-sub">まとめ役だけに表示</div></div></div>
+  <div class="subheader money"><div><h1>全員を見る</h1><div class="subheader-sub">まとめ役だけに表示</div></div></div>
   <div class="form-body">
     <div class="note" style="margin-bottom:12px">👑 まとめ役は新規登録の承認・拒否と、メンバー全員の損益・配達数・利用状況を確認できます。各メンバーは自分のデータのみ閲覧可能です。</div>
 
@@ -945,6 +948,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
     <div class="section-label" style="margin-left:2px;margin-top:18px;">承認済みメンバー</div>
     <div class="team-list" id="team-list"><div class="empty">読み込み中…</div></div>
+    <button class="btn-back-bottom" onclick="go('home')">‹ ホームに戻る</button>
   </div>
 </div>
 
@@ -952,7 +956,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 <div class="bottomnav">
   <button class="bn active" id="nav-home" onclick="go('home')"><span class="bn-icon">🏠</span><span class="bn-txt">ホーム</span></button>
   <button class="bn" id="nav-expense" onclick="go('expense')"><span class="bn-icon">🧾</span><span class="bn-txt">レシート</span></button>
-  <button class="bn" id="nav-count" onclick="go('count')"><span class="bn-icon">📦</span><span class="bn-txt">個数</span></button>
+  <button class="bn" id="nav-income" onclick="go('income')"><span class="bn-icon">💰</span><span class="bn-txt">売上</span></button>
   <button class="bn" id="nav-report" onclick="go('report')"><span class="bn-icon">📊</span><span class="bn-txt">グラフ</span></button>
   <button class="bn" id="nav-drive" onclick="go('drive')"><span class="bn-icon">🚛</span><span class="bn-txt">運行記録</span></button>
 </div>
@@ -1323,11 +1327,12 @@ function applyOcrRowsToReceipt(rows){
 
 var currentUser=null, currentProfile=null, isManager=false;
 var countVal=0, goalTarget=100, workDays=22;
-/* 配達個数画面で編集中の日付。既定は今日だが、過去の日も選んで記録できる。
-   ホームのゲージと収入画面は「今日」の数を使うので、
-   過去日を編集している間はそれらを書き換えない（countDate と今日を比べて判断する）。 */
-var countDate = null;
-function isCountDateToday(){ return !countDate || countDate===todayKey(); }
+/* 「売上・個数」画面で編集中の日付。既定は今日だが、過去の日も選んで記録できる。
+   ホームの達成率ゲージは「今日」の数を表すものなので、
+   過去日を編集している間は書き換えない（earnDate と今日を比べて判断する）。 */
+var earnDate = null;
+function isEarnDateToday(){ return !earnDate || earnDate===todayKey(); }
+function earnDateKey(){ return earnDate || todayKey(); }
 
 /* ══════════════════════ 運行記録の対象日 ══════════════════════
    ・driveDate … 運行記録タブで見ている日（既定=今日）
@@ -1390,7 +1395,6 @@ function go(id){
   if(id==='home') refreshHome();
   else if(id==='income') loadIncomeScreen();
   else if(id==='expense') loadExpenseScreen();
-  else if(id==='count') loadCountScreen();
   else if(id==='settings') loadSettingsScreen();
   else if(id==='drive') loadDriveToday();
   else if(id==='report') loadReport();
@@ -1638,8 +1642,7 @@ function finishInit(){
   currentProfile.status = status;
   goalTarget = currentProfile.targetCount || 100;
   workDays = currentProfile.workDaysPerMonth || 22;
-  document.getElementById('header-username').textContent = 'ログイン中: '+(currentProfile.name||currentUser.email)+'さん';
-  document.getElementById('header-avatar').textContent = (currentProfile.name||'ド').charAt(0);
+  document.getElementById('header-username').textContent = (currentProfile.name||currentUser.email)+'さん';
   document.getElementById('btn-team').style.display = isManager ? 'flex' : 'none';
 
   if(!isManager && status!=='approved'){
@@ -1764,7 +1767,7 @@ function renderTodayGoalCard(cumulative, workedDaysBeforeToday){
     // 稼働予定日数を使い切っている(または超過) → ゼロ除算を避け、注意表示のみ
     el.className='today-goal-card state-warn';
     mainEl.innerHTML='⚠️ 予定の稼働日数を超えています';
-    subEl.textContent='「今月の稼働予定日数」（配達個数タブ）の設定を見直してください';
+    subEl.textContent='「今月の稼働予定日数」（「売上」タブ）の設定を見直してください';
     return;
   }
   var todayTarget = Math.ceil(remainGoal/remainDays); // 小数は切り上げ
@@ -1776,9 +1779,9 @@ function renderTodayGoalCard(cumulative, workedDaysBeforeToday){
   mainEl.innerHTML='今日の目標　<b>'+todayTarget+'個</b>　<span class="today-goal-badge">'+badge+'</span>';
   subEl.textContent='今月あと'+remainGoal+'個 ／ 残り'+remainDays+'日';
 }
-/* skipSelf=trueのときは「個数」画面の入力欄自体は書き換えない（入力中にカーソルが飛ぶのを防ぐ） */
+/* skipSelf=trueのときは「売上・個数」画面の入力欄自体は書き換えない（入力中にカーソルが飛ぶのを防ぐ） */
 function syncCountViews(skipSelf){
-  var cv=document.getElementById('count-val'); if(cv && !skipSelf) cv.value=countVal;
+  var cv=document.getElementById('in-count'); if(cv && !skipSelf) cv.value=countVal;
   var remain=document.getElementById('count-remain');
   if(remain){
     var left=Math.max(0, goalTarget-countVal);
@@ -1786,7 +1789,7 @@ function syncCountViews(skipSelf){
   }
   /* ホームの達成率ゲージは「今日の配達」を表すもの。
      過去日を編集している間は書き換えない（今日の実績が過去日の数で上書きされるのを防ぐ）。 */
-  if(!isCountDateToday()) return;
+  if(!isEarnDateToday()) return;
   var pct = goalTarget>0 ? Math.min(999, Math.round(countVal/goalTarget*100)) : 0;
   var gc=document.getElementById('goal-count'); if(gc) gc.textContent=countVal;
   var gt=document.getElementById('goal-target'); if(gt) gt.textContent=goalTarget;
@@ -1797,13 +1800,16 @@ function syncCountViews(skipSelf){
   }
   var gp=document.getElementById('goal-pct'); if(gp) gp.textContent='達成率 '+pct+'%';
 }
-/* 個数を直接入力（キーボードでその場で数字を打ち込む） */
-function onCountInput(){
-  countVal = num(val('count-val'));
+/* 個数を直接入力（キーボードでその場で数字を打ち込む）。
+   個数を変えたら売上（個数×単価）も即座に計算し直す。 */
+function onEarnCountInput(){
+  countVal = num(val('in-count'));
   syncCountViews(true);
+  calcIncomeLive();
 }
-function onCountBlur(){
+function onEarnCountBlur(){
   syncCountViews();
+  calcIncomeLive();
 }
 
 /* 当月の売上・経費・税率別小計を集計 */
@@ -1892,40 +1898,100 @@ function showBarDetail(i){
 }
 
 /* ══════════════════════ 収入 ══════════════════════ */
+/* 「売上・個数」画面を開いたとき。必ず今日に戻す
+   （前回選んだ過去日のまま、今日の分を書いてしまう事故を防ぐ）。 */
 function loadIncomeScreen(){
-  document.getElementById('in-date').value = todayKey();
-  /* 個数欄は必ず「今日」の記録から入れる。
-     個数画面で過去日を編集した直後でも、その数が混ざらないようにするため。 */
-  document.getElementById('in-count').value = 0;
-  if(currentUser){
-    dref('users/'+currentUser.uid+'/deliveries/'+todayKey()).once('value').then(function(snap){
-      var v=snap.val();
-      document.getElementById('in-count').value=(v && v.count)||0;
-      calcIncomeLive();
-    });
-  }
-  calcIncomeLive();
+  earnDate = todayKey();
+  document.getElementById('in-date').value = earnDate;
+  document.getElementById('target-input').value = goalTarget;
+  document.getElementById('workdays-input').value = workDays;
+  loadEarnForDate();
   loadIncomeList();
+}
+/* 選んだ日に保存済みの「個数」と「売上」を読み込んで画面に戻す。
+   すでに記録した日を選べば、そのまま直して上書きできる。 */
+function loadEarnForDate(){
+  var date=earnDateKey();
+  refreshEarnDateNote();
+  if(!currentUser){ syncCountViews(); calcIncomeLive(); return; }
+  dref('users/'+currentUser.uid+'/deliveries/'+date).once('value').then(function(snap){
+    var v=snap.val();
+    countVal=(v && v.count)||0;
+    syncCountViews();
+    calcIncomeLive();
+  });
+  /* その日の収入レコード（あれば最初の1件）を入力欄に戻す */
+  dref('users/'+currentUser.uid+'/income').once('value').then(function(snap){
+    var found=null;
+    snap.forEach(function(c){ var v=c.val(); if(!found && v && v.date===date) found=v; });
+    document.getElementById('in-content').value = found ? (found.content||'') : '';
+    document.getElementById('in-unit').value = found ? (found.unitPrice||0) : 0;
+    calcIncomeLive();
+  });
+}
+function onEarnDateChange(){
+  var v=document.getElementById('in-date').value;
+  if(!v) return;                       // 日付を空にされたら前の日付を保つ
+  earnDate=v;
+  loadEarnForDate();
+}
+function earnDateToday(){
+  earnDate=todayKey();
+  document.getElementById('in-date').value=earnDate;
+  loadEarnForDate();
+}
+/* 今日以外を開いているときだけ注意帯を出す（運行記録と同じ考え方） */
+function refreshEarnDateNote(){
+  var note=document.getElementById('earn-date-note');
+  if(!note) return;
+  if(isEarnDateToday()){ note.className='drive-lock-note'; note.textContent=''; return; }
+  var d=new Date(earnDateKey()+'T00:00:00');
+  var label=(d.getMonth()+1)+'月'+d.getDate()+'日';
+  note.className='drive-lock-note editing';
+  note.textContent='✏️ 今日ではなく '+label+' を編集しています。保存すると '+label+' の記録になります。';
 }
 function calcIncomeLive(){
   var c=document.getElementById('in-count'), u=document.getElementById('in-unit'), out=document.getElementById('in-calc');
   if(!c||!u||!out) return;
   out.textContent=yen(num(c.value)*num(u.value));
 }
-function saveIncome(){
-  var date=document.getElementById('in-date').value;
+/* 個数と売上を1回のボタンでまとめて保存する。
+   ・個数 → deliveries/{日付}（1日1件なので set で上書き）
+   ・売上 → income（同じ日付のレコードがあれば更新、無ければ新規）
+     同じ日に2回押しても増殖せず、二重計上にならない。
+   単価が0のときは売上を作らない（個数だけ記録したい日のため）。 */
+function saveEarn(){
+  var date=document.getElementById('in-date').value || todayKey();
   var content=document.getElementById('in-content').value.trim();
   var count=num(document.getElementById('in-count').value);
   var unit=num(document.getElementById('in-unit').value);
   var amount=count*unit;
-  if(!date){ toast('⚠️ 日付を入力してください'); return; }
-  var ref=dref('users/'+currentUser.uid+'/income').push();
-  ref.set({date:date, content:content, count:count, unitPrice:unit, amount:amount, createdAt:firebase.database.ServerValue.TIMESTAMP})
-    .then(function(){
-      toast('✅ 収入を記録しました');
-      document.getElementById('in-content').value='';
-      loadIncomeList();
-    }).catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
+  var uid=currentUser.uid;
+  var TS=firebase.database.ServerValue.TIMESTAMP;
+
+  var saveCountP = dref('users/'+uid+'/deliveries/'+date).set({count:count, updatedAt:TS});
+
+  var saveIncomeP;
+  if(unit>0 && count>0){
+    saveIncomeP = dref('users/'+uid+'/income').once('value').then(function(snap){
+      var key=null;
+      snap.forEach(function(c){ var v=c.val(); if(!key && v && v.date===date) key=c.key; });
+      var data={date:date, content:content, count:count, unitPrice:unit, amount:amount, updatedAt:TS};
+      if(key) return dref('users/'+uid+'/income/'+key).update(data);
+      data.createdAt=TS;
+      return dref('users/'+uid+'/income').push().set(data);
+    });
+  } else {
+    saveIncomeP = Promise.resolve();
+  }
+
+  Promise.all([saveCountP, saveIncomeP]).then(function(){
+    var label = (date===todayKey()) ? '今日' : date.slice(5).replace('-','/');
+    toast('✅ '+label+'の記録を保存しました'+(unit>0&&count>0 ? '（'+count+'個・'+yen(amount)+'）' : '（'+count+'個）'));
+    loadIncomeList();
+    loadChart();
+    refreshTodayGoalCard();
+  }).catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
 }
 function loadIncomeList(){
   var listEl=document.getElementById('income-list');
@@ -2056,46 +2122,8 @@ function loadExpenseList(){
 }
 
 /* ══════════════════════ 配達個数 ══════════════════════ */
-function loadCountScreen(){
-  /* 画面を開くたび今日に戻す（前回選んだ過去日のまま記録してしまうのを防ぐ） */
-  countDate = todayKey();
-  document.getElementById('count-date-input').value = countDate;
-  document.getElementById('target-input').value = goalTarget;
-  document.getElementById('workdays-input').value = workDays;
-  loadCountForDate();
-}
-/* 選んだ日付に保存済みの個数を読み込んで画面に出す */
-function loadCountForDate(){
-  var d=new Date(countDate+'T00:00:00');
-  var label=d.getFullYear()+'年'+(d.getMonth()+1)+'月'+d.getDate()+'日';
-  document.getElementById('count-date').textContent = label + (isCountDateToday()?'（今日）':'');
-  if(!currentUser){ syncCountViews(); return; }
-  dref('users/'+currentUser.uid+'/deliveries/'+countDate).once('value').then(function(snap){
-    var v=snap.val();
-    countVal=(v && v.count)||0;
-    syncCountViews();
-  });
-}
-function onCountDateChange(){
-  var v=document.getElementById('count-date-input').value;
-  if(!v) return;                       // 日付を空にされたら前の日付を保つ
-  countDate=v;
-  loadCountForDate();
-}
-function countDateToday(){
-  countDate=todayKey();
-  document.getElementById('count-date-input').value=countDate;
-  loadCountForDate();
-}
-function saveCount(){
-  var target = countDate || todayKey();
-  dref('users/'+currentUser.uid+'/deliveries/'+target).set({count:countVal, updatedAt:firebase.database.ServerValue.TIMESTAMP})
-    .then(function(){
-      toast('✅ '+(target===todayKey()?'今日':target.slice(5).replace('-','/'))+'の個数を記録しました');
-      loadChart();                     // 棒グラフをその場で更新する
-    })
-    .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
-}
+/* ※「配達個数」画面は「売上・個数」画面に統合したため、専用の読み込み・保存処理は廃止。
+   目標設定（1日の目標個数・稼働予定日数）は統合画面の下部にそのまま置いている。 */
 function saveTarget(){
   var v=num(document.getElementById('target-input').value);
   if(v<=0) v=100;
@@ -2149,8 +2177,7 @@ function saveProfileSettings(){
   var updates={name:name, companyName:company, officeName:office, vehicle:vehicle};
   dref('users/'+currentUser.uid+'/profile').update(updates).then(function(){
     currentProfile.name=name; currentProfile.companyName=company; currentProfile.officeName=office; currentProfile.vehicle=vehicle;
-    document.getElementById('header-username').textContent = 'ログイン中: '+name+'さん';
-    document.getElementById('header-avatar').textContent = name.charAt(0);
+    document.getElementById('header-username').textContent = name+'さん';
     msg.style.color='var(--good)'; msg.textContent='✅ 保存しました'; msg.style.display='block';
     toast('✅ ユーザー情報を保存しました');
   }).catch(function(err){
