@@ -3384,6 +3384,13 @@ function setupSwUpdateBanner(reg) {
   });
   // 1時間おきに新版が無いか確認(タブを開きっぱなしでも気づけるように)
   setInterval(function () { reg.update().catch(function () {}); }, 60 * 60 * 1000);
+
+  /* アプリを閉じて開き直した(＝画面が再び前面に出た)ときにも新版を確認する。
+     スマホはアプリを閉じても裏で残っていることが多く、それだと1時間おきの
+     チェックまで更新に気づけない。ここで拾えば、開き直した直後に帯が出る。 */
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') reg.update().catch(function () {});
+  });
 }
 function showUpdateBanner(reg) {
   _swWaitingReg = reg;
