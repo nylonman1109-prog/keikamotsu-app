@@ -116,13 +116,6 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .chart-detail.show{display:block;}
 
 .section-label{font-size:10px;font-weight:700;color:var(--sub);letter-spacing:.5px;margin:10px 2px 6px;}
-.btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-.btn-g{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 8px;border:none;border-radius:var(--radius);cursor:pointer;box-shadow:var(--shadow);transition:transform .12s;text-align:center;}
-.btn-g:active{transform:scale(.96);}
-.bg-in{background:linear-gradient(135deg,#00838F,#26A69A);}
-.btn-g-icon{font-size:24px;margin-bottom:4px;}
-.btn-g-title{font-size:13px;font-weight:800;color:white;}
-.btn-g-desc{font-size:10px;color:rgba(255,255,255,.85);margin-top:1px;}
 
 .note{background:#FFFDE7;border:1px solid #FFD54F;border-radius:10px;padding:9px 12px;font-size:11px;color:#795548;line-height:1.6;margin:4px 2px 0;}
 
@@ -550,9 +543,6 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
       <div class="chart-detail" id="chart-detail"></div>
     </div>
 
-    <div class="btn-grid" style="grid-template-columns:1fr;">
-      <button class="btn-g bg-in" onclick="go('income')" style="padding:16px 8px;"><span class="btn-g-icon">💰</span><span class="btn-g-title">売上・個数を記録</span><span class="btn-g-desc">個数 × 単価をまとめて</span></button>
-    </div>
 
     <div class="note">💡 レシート・売上・点呼簿・業務簿は下部タブ（レシート／売上／運行記録）から記録できます。</div>
 
