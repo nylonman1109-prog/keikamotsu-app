@@ -256,6 +256,46 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .team-btn.reject{background:var(--bad);}
 .team-btn.stop{background:var(--sub);}
 .team-btn.doc{background:var(--money);}
+.team-btn.promote{background:var(--gold);color:#1A1A2E;}
+/* ── 経営レポート ── */
+.biz-total{background:linear-gradient(135deg,#1565C0,#0D47A1);color:#fff;border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+.biz-total-label{font-size:11px;opacity:.85;font-weight:700;}
+.biz-total-main{font-size:29px;font-weight:800;margin:6px 0 3px;letter-spacing:-.5px;}
+.biz-total-diff{font-size:12px;font-weight:700;background:rgba(255,255,255,.2);display:inline-block;padding:3px 9px;border-radius:999px;}
+.biz-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:14px;}
+.biz-cell{background:rgba(255,255,255,.14);border-radius:10px;padding:9px 11px;}
+.biz-cell .k{font-size:10px;opacity:.8;}
+.biz-cell .v{font-size:15px;font-weight:800;margin-top:2px;}
+.biz-card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow);}
+.biz-card-title{font-size:11px;font-weight:700;color:var(--sub);letter-spacing:.5px;padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:13px;display:flex;justify-content:space-between;align-items:center;}
+.biz-bars{display:flex;align-items:flex-end;gap:8px;height:112px;}
+.biz-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end;}
+.biz-bar{width:100%;border-radius:5px 5px 0 0;background:#90CAF9;min-height:2px;}
+.biz-bar.now{background:var(--money);}
+.biz-bar.minus{background:#EF9A9A;}
+.biz-bar-l{font-size:10px;color:var(--sub);}
+.biz-mrow{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);}
+.biz-mrow:last-child{border-bottom:none;}
+.biz-mname{font-size:14px;font-weight:800;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.biz-msub{font-size:11px;color:var(--sub);margin-top:3px;}
+.biz-mval{text-align:right;flex-shrink:0;}
+.biz-mprofit{font-size:14px;font-weight:800;}
+.biz-mprofit.good{color:var(--good);} .biz-mprofit.bad{color:var(--bad);}
+.biz-badge-warn{font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;background:var(--warn-light);color:var(--warn);}
+.biz-docrow{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.biz-docrow:last-child{border-bottom:none;}
+.biz-docname{flex:1;font-size:13px;font-weight:700;}
+.biz-pill{font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px;}
+.biz-pill.ok{background:var(--good-light);color:var(--good);}
+.biz-pill.ng{background:var(--bad-light);color:var(--bad);}
+.biz-hint{font-size:11px;color:var(--sub);line-height:1.7;margin-top:10px;}
+/* サポート管理者(owner)専用の枠。自分にしか見えない場所なので、他と色味を変えて区別する */
+.owner-panel{background:var(--card);border:2px solid #37474F;border-radius:var(--radius);padding:13px 14px;margin-bottom:14px;box-shadow:var(--shadow);}
+.owner-panel-title{font-size:11.5px;font-weight:800;color:#37474F;margin-bottom:11px;}
+.owner-row{display:flex;align-items:center;gap:11px;}
+.owner-panel-note{font-size:11px;color:var(--sub);line-height:1.7;margin-top:11px;padding-top:10px;border-top:1px solid var(--border);}
+.team-avatar.support{background:#ECEFF1;color:var(--sub);}
+.badge-support{font-size:10px;font-weight:800;padding:2px 7px;border-radius:999px;background:#455A64;color:#fff;margin-left:6px;}
 .team-btn-row{display:flex;gap:6px;}
 .team-count-badge{display:none;background:var(--gold);color:#fff;font-size:10px;font-weight:800;padding:1px 7px;border-radius:10px;margin-left:5px;vertical-align:1px;}
 
@@ -566,6 +606,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
     <div class="account-row">
       <button class="account-btn" onclick="go('settings')">⚙️ 設定（氏名・会社名など）</button>
       <button class="account-btn" id="btn-team" onclick="go('team')" style="display:none">👥 全員を見る<span class="team-count-badge" id="team-badge"></span></button>
+      <button class="account-btn" id="btn-bizreport" onclick="go('bizreport')" style="display:none">📊 経営レポート</button>
       <button class="account-btn logout" onclick="logout()">🚪 ログアウト</button>
     </div>
   </div>
@@ -934,6 +975,9 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
   <div class="form-body">
     <div class="note" style="margin-bottom:12px">👑 まとめ役は新規登録の承認・拒否と、メンバー全員の損益・配達数・利用状況を確認できます。各メンバーは自分のデータのみ閲覧可能です。</div>
 
+    <!-- サポート管理者(owner)にだけ出る枠。それ以外の人にはJS側でdisplay:noneのまま -->
+    <div class="owner-panel" id="owner-panel" style="display:none"></div>
+
     <div class="section-label" style="margin-left:2px" id="pending-label">承認待ち 0件</div>
     <div class="team-list" id="pending-list"><div class="empty">読み込み中…</div></div>
 
@@ -953,6 +997,21 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 
     <div class="section-label" style="margin-left:2px;margin-top:18px;">承認済みメンバー</div>
     <div class="team-list" id="team-list"><div class="empty">読み込み中…</div></div>
+    <button class="btn-back-bottom" onclick="go('home')">‹ ホームに戻る</button>
+  </div>
+</div>
+
+<!-- ═══ 経営レポート（まとめ役・サポート管理者だけ） ═══
+     会社全体の数字を1画面にまとめたもの。現場は入力だけ、管理側はここを見る、という切り分け。 -->
+<div id="bizreport" class="screen">
+  <div class="subheader money"><div><h1>経営レポート</h1><div class="subheader-sub">会社全体の数字を1画面で見る</div></div></div>
+  <div class="form-body">
+    <div class="note" style="margin-bottom:12px">📊 まとめ役とサポート管理者だけに表示されます。ドライバーには見えません。</div>
+    <div class="q" style="margin-bottom:12px;">
+      <div class="q-label">対象月</div>
+      <input type="month" class="field" id="biz-month" onchange="loadBizReport()">
+    </div>
+    <div id="biz-body"><div class="empty">読み込み中…</div></div>
     <button class="btn-back-bottom" onclick="go('home')">‹ ホームに戻る</button>
   </div>
 </div>
@@ -1001,11 +1060,22 @@ const IS_STAGING = true;
 const DB_ROOT = IS_STAGING ? 'staging' : '';
 function dref(path){ return db.ref(DB_ROOT ? (DB_ROOT + '/' + path) : path); }
 
-/* ここに書いたメールアドレスで「新規登録」すると、そのアカウントが「まとめ役」になります。
-   北上さんの実際の登録メールアドレスに書き換えてください（複数人可）。
-   後からでも Firebaseコンソール → Realtime Database → users/該当uid/profile/role を
-   "manager" に書き換えれば、まとめ役に変更できます。 */
-const MANAGER_EMAILS = ["nylonman1109@gmail.com"];
+/* ══════════════════════ 役割（ロール）について ══════════════════════
+   3種類ある。
+     owner   … サポート管理者（開発元）。まとめ役の全機能に加え、まとめ役の任命や
+               メンバー画面の確認ができる。**他の人の画面には一切出ない**（一覧にも集計にも入らない）
+     manager … まとめ役（会社の責任者）。承認・停止、全員の書類、経営レポート
+     driver  … ドライバー。自分の記録だけ
+
+   **ここにメールアドレスは書かない。** アプリのソースは誰でも読めるため、
+   ここに書くと「誰がサポート管理者か」が利用者全員に見えてしまう。
+   役割は必ずデータベース側（users/<uid>/profile/role）だけで決める。
+
+   最初の1人の決め方：
+     Firebaseコンソール → Realtime Database → users/<uid>/profile/role を "owner" にする。
+     以後は owner が画面から「まとめ役を任命」できる。
+   新規登録は全員 driver / 承認待ち から始まる（例外なし）。 */
+const MANAGER_EMAILS = [];
 
 /* ══════════════════════ EmailJS（承認依頼メールの差し込み口） ══════════════════════
    新規登録（まとめ役以外）が発生したとき、まとめ役のGmailに「承認依頼が届きました」
@@ -1330,7 +1400,9 @@ function applyOcrRowsToReceipt(rows){
   toast('📷 レシートを読み取りました（'+rows.length+'件）');
 }
 
-var currentUser=null, currentProfile=null, isManager=false;
+/* isManager は「まとめ役の画面・操作が使えるか」。ownerも含む（ownerはまとめ役の上位）。
+   isOwner は「サポート管理者か」。owner専用の操作（まとめ役の任命・メンバー画面の確認）に使う。 */
+var currentUser=null, currentProfile=null, isManager=false, isOwner=false;
 var countVal=0, goalTarget=100, workDays=22;
 /* 「売上・個数」画面で編集中の日付。既定は今日だが、過去の日も選んで記録できる。
    ホームの達成率ゲージは「今日」の数を表すものなので、
@@ -1403,6 +1475,7 @@ function go(id){
   else if(id==='settings') loadSettingsScreen();
   else if(id==='drive') loadDriveToday();
   else if(id==='report') loadReport();
+  else if(id==='bizreport') loadBizReport();
   else if(id==='team'){ loadTeam(); loadFillCheckDaily(); loadFillCheckMonthly(); }
 }
 function showSub(id){
@@ -1605,7 +1678,7 @@ auth.onAuthStateChanged(function(user){
            （画面は使えるのに保存だけ全部失敗する、という分かりにくい壊れ方をする）
            status の書き込みは「DB上の role が manager の人」だけルールで許可されているので、
            まとめ役はここで自分の status を補完できる。補完し終えてから画面を出す。 */
-        if(!p.status && p.role==='manager'){
+        if(!p.status && (p.role==='manager' || p.role==='owner')){
           dref('users/'+user.uid+'/profile/status').set('approved').then(function(){
             currentProfile.status='approved';
             dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
@@ -1634,13 +1707,14 @@ auth.onAuthStateChanged(function(user){
       });
     });
   } else {
-    currentUser=null; currentProfile=null; isManager=false;
+    currentUser=null; currentProfile=null; isManager=false; isOwner=false;
     go('login');
   }
 });
 
 function finishInit(){
-  isManager = currentProfile.role==='manager';
+  isOwner = currentProfile.role==='owner';
+  isManager = isOwner || currentProfile.role==='manager'; // ownerはまとめ役の機能も全部使える
   /* 承認制を追加する前に作られたプロフィールにはstatusが無い。
      まとめ役は常にapproved扱い、それ以外は未承認(pending)扱いにする安全側のフォールバック。 */
   var status = currentProfile.status || (isManager ? 'approved' : 'pending');
@@ -1649,6 +1723,7 @@ function finishInit(){
   workDays = currentProfile.workDaysPerMonth || 22;
   document.getElementById('header-username').textContent = (currentProfile.name||currentUser.email)+'さん';
   document.getElementById('btn-team').style.display = isManager ? 'flex' : 'none';
+  document.getElementById('btn-bizreport').style.display = isManager ? 'flex' : 'none';
 
   if(!isManager && status!=='approved'){
     showGate(status);
@@ -2461,7 +2536,7 @@ function fmtDateTime(ts){
 }
 /* 古いプロフィール(statusが無い)にも対応した判定 */
 function profileStatus(p){
-  return p.status || (p.role==='manager' ? 'approved' : 'pending');
+  return p.status || (p.role==='manager' || p.role==='owner' ? 'approved' : 'pending');
 }
 function loadTeam(){
   var pendingEl=document.getElementById('pending-list');
@@ -2493,6 +2568,11 @@ function loadTeam(){
       });
     }));
   }).then(function(rows){
+    /* サポート管理者(owner)は、まとめ役にもドライバーにも見せない。
+       承認待ち・メンバー一覧・人数・経営レポートの集計、どこにも含めない。
+       自分がownerのときだけ、専用の枠に自分の行が出る。 */
+    renderOwnerPanel(rows.filter(function(r){ return r.role==='owner'; }));
+    rows = rows.filter(function(r){ return r.role!=='owner'; });
     var pending=rows.filter(function(r){return r.status==='pending';});
     var approved=rows.filter(function(r){return r.status==='approved';});
     approved.sort(function(a,b){ return (a.role==='manager'?0:1)-(b.role==='manager'?0:1); });
@@ -2519,15 +2599,208 @@ function loadTeam(){
       var cls = r.profit>=0?'good':'bad';
       var stopBtn = r.role==='manager' ? '' : '<button class="team-btn stop" onclick="suspendUser(\''+r.uid+'\')">利用停止</button>';
       /* まとめ役はこのボタン1つで、その人の点呼簿・業務記録・日常点検を開いてPDF保存できる */
+      var promoteBtn = (isOwner && r.role!=='manager')
+        ? '<button class="team-btn promote" onclick="promoteToManager(\''+r.uid+'\')">👑 まとめ役にする</button>' : '';
       var docBtn = '<button class="team-btn doc" onclick="openMemberLedger(\''+r.uid+'\')">📄 書類</button>';
       return '<div class="team-item"><div class="team-avatar">'+esc((r.name||'ド').charAt(0))+'</div>'+
         '<div class="team-info"><div class="team-name">'+esc(r.name)+badge+'</div>'+
         '<div class="team-sub">今日 '+r.todayCount+'/'+r.target+'個 ・ '+Number(ym.slice(5,7))+'月</div>'+
         '<div class="team-sub">'+esc(r.email||'（メール未登録）')+'</div>'+
         '<div class="team-sub">最終ログイン: '+fmtDateTime(r.lastLoginAt)+'</div></div>'+
-        '<div class="team-actions"><div class="team-profit '+cls+'">'+yenSigned(r.profit)+'</div>'+docBtn+stopBtn+'</div></div>';
+        '<div class="team-actions"><div class="team-profit '+cls+'">'+yenSigned(r.profit)+'</div>'+docBtn+promoteBtn+stopBtn+'</div></div>';
     }).join('');
   });
+}
+/* ══════════════════════ 経営レポート ══════════════════════
+   会社全体の数字を1画面にまとめる。まとめ役とサポート管理者だけが開ける。
+   通信量を抑えるため、1人につき income / expenses / deliveries は**1回ずつしか読まない**。
+   月ごとに読み直すと「人数 × 月数」回の通信になり、人が増えたときに待たされるため、
+   1回読んだ結果を月別に振り分ける形にしている。 */
+function bizMonths(ym, n){
+  var y=Number(ym.slice(0,4)), m=Number(ym.slice(5,7));
+  var arr=[];
+  for(var i=n-1;i>=0;i--){
+    var dt=new Date(y, m-1-i, 1);
+    arr.push({key:dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'), label:(dt.getMonth()+1)+'月'});
+  }
+  return arr;
+}
+/* 1人分の数字をまとめて集める。monthKeys=集計したい月の一覧、ym=書類の状況を見る月 */
+function collectMemberStats(uid, monthKeys, ym){
+  var range=monthRange(ym);
+  return Promise.all([
+    dref('users/'+uid+'/income').once('value'),
+    dref('users/'+uid+'/expenses').once('value'),
+    dref('users/'+uid+'/deliveries').once('value'),
+    dref('users/'+uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    dref('users/'+uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    dref('users/'+uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+  ]).then(function(r){
+    var byMonth={};
+    monthKeys.forEach(function(k){ byMonth[k]={sales:0, expense:0, count:0, days:0}; });
+    r[0].forEach(function(c){
+      var v=c.val(); if(!v || !v.date) return;
+      var k=v.date.slice(0,7); if(byMonth[k]) byMonth[k].sales += Number(v.amount)||0;
+    });
+    r[1].forEach(function(c){
+      var v=c.val(); if(!v || !v.date) return;
+      var k=v.date.slice(0,7); if(byMonth[k]) byMonth[k].expense += Number(v.total)||0;
+    });
+    r[2].forEach(function(c){
+      var v=c.val(); var k=c.key.slice(0,7);
+      if(byMonth[k]){ byMonth[k].count += Number(v && v.count)||0; byMonth[k].days++; }
+    });
+    /* 書類の記入状況。稼働日＝点呼・業務簿・点検のどれかを保存した日（休んだ日は数えない）。
+       点呼は乗務前・乗務後の両方が入っている日だけを「記入済み」とする（既存の記入チェックと同じ定義）。 */
+    var tenkoDays=0, gyomuDays=0, vcDays=0, worked={};
+    r[3].forEach(function(c){
+      var v=c.val();
+      if(v && v.pre && v.pre.datetime && v.post && v.post.datetime) tenkoDays++;
+      if(v && v.updatedAt) worked[c.key]=true;
+    });
+    r[4].forEach(function(c){ var v=c.val(); if(v && v.updatedAt){ gyomuDays++; worked[c.key]=true; } });
+    r[5].forEach(function(c){ var v=c.val(); if(v && v.updatedAt){ vcDays++; worked[c.key]=true; } });
+    return {byMonth:byMonth, docs:{tenko:tenkoDays, gyomu:gyomuDays, vc:vcDays, worked:Object.keys(worked).length}};
+  });
+}
+function loadBizReport(){
+  if(!isManager) return;
+  var monthInput=document.getElementById('biz-month');
+  if(!monthInput.value) monthInput.value = todayKey().slice(0,7);
+  var ym=monthInput.value;
+  var months=bizMonths(ym, 6);
+  var keys=months.map(function(m){ return m.key; });
+  var prevKey=bizMonths(ym, 2)[0].key;          // 前月比に使う
+  if(keys.indexOf(prevKey)<0) keys.push(prevKey);
+  var body=document.getElementById('biz-body');
+  body.innerHTML='<div class="empty">読み込み中…</div>';
+  getApprovedUsersForCheck().then(function(users){
+    if(!users.length){ body.innerHTML='<div class="empty">承認済みメンバーがいません</div>'; return null; }
+    return Promise.all(users.map(function(u){
+      return collectMemberStats(u.uid, keys, ym).then(function(st){
+        st.uid=u.uid; st.name=u.name; return st;
+      });
+    }));
+  }).then(function(list){
+    if(list) renderBizReport(ym, months, prevKey, list);
+  }).catch(function(err){
+    body.innerHTML='<div class="empty" style="color:var(--bad)">⚠️ 読み込みに失敗しました: '+esc(err.message)+'</div>';
+  });
+}
+function renderBizReport(ym, months, prevKey, list){
+  var body=document.getElementById('biz-body');
+  /* 会社全体（当月） */
+  var sales=0, expense=0, count=0, workers=0;
+  list.forEach(function(r){
+    var m=r.byMonth[ym]||{};
+    sales += m.sales||0; expense += m.expense||0; count += m.count||0;
+    if((m.days||0)>0) workers++;
+  });
+  var profit=sales-expense;
+  /* 前月比 */
+  var prevProfit=0;
+  list.forEach(function(r){ var m=r.byMonth[prevKey]||{}; prevProfit += (m.sales||0)-(m.expense||0); });
+  var diff=profit-prevProfit;
+  var diffText;
+  if(prevProfit===0){
+    diffText = prevProfit===0 && profit===0 ? '前月もこの月も記録がありません' : '前月の記録がありません';
+  } else {
+    var pct=Math.round(diff/Math.abs(prevProfit)*1000)/10;
+    diffText = '前月比 '+(diff>=0?'＋':'－')+Math.abs(pct)+'%（'+yenSigned(diff)+'）';
+  }
+  var html='<div class="biz-total">'
+    +'<div class="biz-total-label">会社全体の利益（'+Number(ym.slice(0,4))+'年'+Number(ym.slice(5,7))+'月）</div>'
+    +'<div class="biz-total-main">'+yen(profit)+'</div>'
+    +'<div class="biz-total-diff">'+esc(diffText)+'</div>'
+    +'<div class="biz-grid">'
+      +'<div class="biz-cell"><div class="k">売上</div><div class="v">'+yen(sales)+'</div></div>'
+      +'<div class="biz-cell"><div class="k">経費</div><div class="v">'+yen(expense)+'</div></div>'
+      +'<div class="biz-cell"><div class="k">配達個数</div><div class="v">'+count.toLocaleString('ja-JP')+'個</div></div>'
+      +'<div class="biz-cell"><div class="k">稼働メンバー</div><div class="v">'+workers+'人</div></div>'
+    +'</div></div>';
+
+  /* 6か月の利益推移（会社全体） */
+  var series=months.map(function(m){
+    var p=0;
+    list.forEach(function(r){ var v=r.byMonth[m.key]||{}; p += (v.sales||0)-(v.expense||0); });
+    return {label:m.label, key:m.key, profit:p};
+  });
+  var maxAbs=Math.max.apply(null, series.map(function(d){ return Math.abs(d.profit); })) || 1;
+  html+='<div class="biz-card"><div class="biz-card-title"><span>会社の利益の推移</span><span>6か月</span></div><div class="biz-bars">';
+  series.forEach(function(d){
+    var h=Math.round(Math.abs(d.profit)/maxAbs*100);
+    var cls='biz-bar'+(d.key===ym?' now':'')+(d.profit<0?' minus':'');
+    html+='<div class="biz-bar-wrap"><div class="'+cls+'" style="height:'+h+'%"></div><div class="biz-bar-l">'+esc(d.label)+'</div></div>';
+  });
+  html+='</div><div class="biz-hint">※ここは宮里さんと設計する「年間の収支予測」に育てる場所です。繁忙期と閑散期が見えると、いつ働いていつ休めるかの判断に使えます。</div></div>';
+
+  /* メンバー別 */
+  html+='<div class="biz-card"><div class="biz-card-title"><span>メンバー別（'+Number(ym.slice(5,7))+'月）</span><span>'+list.length+'人</span></div>';
+  list.slice().sort(function(a,b){
+    var pa=(a.byMonth[ym].sales||0)-(a.byMonth[ym].expense||0);
+    var pb=(b.byMonth[ym].sales||0)-(b.byMonth[ym].expense||0);
+    return pb-pa;
+  }).forEach(function(r){
+    var m=r.byMonth[ym]||{};
+    var p=(m.sales||0)-(m.expense||0);
+    var miss=Math.max(0, (r.docs.worked||0)-Math.min(r.docs.tenko, r.docs.gyomu, r.docs.vc));
+    var missBadge = miss>0 ? '<span class="biz-badge-warn">記入漏れ '+miss+'日</span>' : '';
+    html+='<div class="biz-mrow">'
+      +'<div class="team-avatar">'+esc((r.name||'ド').charAt(0))+'</div>'
+      +'<div class="team-info"><div class="biz-mname">'+esc(r.name)+missBadge+'</div>'
+      +'<div class="biz-msub">'+(m.count||0).toLocaleString('ja-JP')+'個 ・ 稼働'+(m.days||0)+'日</div>'
+      +'<div class="biz-msub">売上 '+yen(m.sales||0)+' ／ 経費 '+yen(m.expense||0)+'</div></div>'
+      +'<div class="biz-mval"><div class="biz-mprofit '+(p>=0?'good':'bad')+'">'+yenSigned(p)+'</div>'
+      +'<button class="team-btn doc" onclick="openMemberLedger(\''+r.uid+'\')">📄 書類</button></div></div>';
+  });
+  html+='</div>';
+
+  /* 書類の提出状況 */
+  var t={worked:0, tenko:0, gyomu:0, vc:0};
+  list.forEach(function(r){ t.worked+=r.docs.worked; t.tenko+=r.docs.tenko; t.gyomu+=r.docs.gyomu; t.vc+=r.docs.vc; });
+  function docRow(name, ok){
+    var miss=Math.max(0, t.worked-ok);
+    return '<div class="biz-docrow"><div class="biz-docname">'+name+'</div>'
+      +(miss>0 ? '<div class="biz-pill ng">未記入 '+miss+'日</div>' : '<div class="biz-pill ok">全員そろっています</div>')+'</div>';
+  }
+  var totalMiss=Math.max(0,t.worked-t.tenko)+Math.max(0,t.worked-t.gyomu)+Math.max(0,t.worked-t.vc);
+  html+='<div class="biz-card"><div class="biz-card-title"><span>書類の提出状況（'+Number(ym.slice(5,7))+'月）</span>'
+    +'<span style="color:'+(totalMiss>0?'var(--bad)':'var(--good)')+';font-weight:800;">'+(totalMiss>0? totalMiss+'日ぶん未記入' : 'そろっています')+'</span></div>'
+    +docRow('点呼記録簿（乗務前・乗務後とも）', t.tenko)
+    +docRow('業務記録', t.gyomu)
+    +docRow('日常点検記録簿', t.vc)
+    +'<div class="biz-hint">「稼働日数（全員合計 '+t.worked+'日）」に対して、何日ぶん記入されているかを見ています。誰のどの日が抜けているかは「👥 全員を見る」の記入状況で確認できます。</div></div>';
+
+  body.innerHTML=html;
+}
+
+/* ══════════════════════ サポート管理者（owner）専用の枠 ══════════════════════
+   自分がownerのときだけ表示される。まとめ役にもドライバーにも、この枠自体が出ない。 */
+function renderOwnerPanel(owners){
+  var box=document.getElementById('owner-panel');
+  if(!box) return;
+  if(!isOwner || !owners.length){ box.style.display='none'; box.innerHTML=''; return; }
+  box.style.display='block';
+  box.innerHTML = '<div class="owner-panel-title">🛠 サポート（自分だけに見えています）</div>'
+    + owners.map(function(r){
+        return '<div class="owner-row">'
+          + '<div class="team-avatar support">'+esc((r.name||'サ').charAt(0))+'</div>'
+          + '<div class="team-info"><div class="team-name">'+esc(r.name)+'<span class="badge-support">サポート</span></div>'
+          + '<div class="team-sub">一覧・人数・売上の集計には含まれません</div>'
+          + '<div class="team-sub">他のメンバーの画面には表示されません</div></div></div>';
+      }).join('')
+    + '<div class="owner-panel-note">まとめ役（会社の責任者）を決めるときは、下のメンバー一覧にある「👑 まとめ役にする」を押してください。</div>';
+}
+/* まとめ役の任命。ownerだけが実行できる（セキュリティルール側でも role の書き換えを制限している） */
+function promoteToManager(uid){
+  if(!isOwner){ toast('⚠️ この操作はサポート管理者だけができます'); return; }
+  if(!confirm('このメンバーを「まとめ役」にします。\n\nまとめ役は、全員の記録・書類・経営レポートを見られるようになります。よろしいですか？')) return;
+  dref('users/'+uid+'/profile/role').set('manager').then(function(){
+    return dref('users/'+uid+'/profile/status').set('approved');
+  }).then(function(){
+    toast('👑 まとめ役にしました');
+    loadTeam(); updatePendingBadge();
+  }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
 }
 function approveUser(uid){
   dref('users/'+uid+'/profile/status').set('approved').then(function(){
@@ -2599,11 +2872,13 @@ function getApprovedUsersForCheck(){
     return Promise.all(uids.map(function(uid){
       return dref('users/'+uid+'/profile').once('value').then(function(s){
         var p=s.val()||{};
-        return {uid:uid, name:p.name||'名称未設定', status:profileStatus(p)};
+        return {uid:uid, name:p.name||'名称未設定', status:profileStatus(p), role:p.role||'driver'};
       });
     }));
   }).then(function(rows){
-    return rows.filter(function(r){ return r.status==='approved'; });
+    /* サポート管理者(owner)は業務上のメンバーではないので、
+       帳票の対象者・記入チェック・経営レポートの集計から外す */
+    return rows.filter(function(r){ return r.status==='approved' && r.role!=='owner'; });
   });
 }
 function setFcDateToday(){
