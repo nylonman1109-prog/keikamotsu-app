@@ -455,9 +455,30 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .gate-mailto-btn:active{transform:scale(.98);}
 .gate-mailto-note{font-size:10px;color:var(--sub);margin-top:8px;line-height:1.6;}
 .gate-manager-email{font-size:11px;color:var(--sub);margin-top:14px;line-height:1.6;}
+/* ── 会社の選択・作成・参加（新規登録のときだけ通る画面） ── */
+#company{background:linear-gradient(160deg,#1565C0,#1E88E5 55%,#0D47A1);justify-content:center;align-items:center;padding:24px;}
+.co-step{display:none;}
+.co-step.active{display:block;}
+.choice{display:block;width:100%;text-align:left;border:2px solid var(--border);border-radius:14px;padding:15px 14px;background:#FAFAFA;cursor:pointer;font-family:inherit;margin-bottom:11px;}
+.choice:active{transform:scale(.99);}
+.choice.primary{border-color:var(--money);background:var(--money-light);}
+.choice-t{font-size:14px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+.choice-d{font-size:11px;color:var(--sub);line-height:1.7;}
+.code-box{background:var(--good-light);border:2px dashed var(--good);border-radius:14px;padding:16px 12px;text-align:center;margin:6px 0 12px;}
+.code-cap{font-size:11px;font-weight:700;color:var(--good);margin-bottom:7px;}
+.code-val{font-size:25px;font-weight:800;letter-spacing:3px;color:var(--good);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;word-break:break-all;}
+.code-note{font-size:10px;color:var(--sub);margin-top:8px;line-height:1.6;}
+.copy-btn{width:100%;padding:11px;background:#fff;border:2px solid var(--good);color:var(--good);border-radius:11px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;}
+.copy-btn:active{background:var(--good-light);}
+.code-input{text-align:center;font-size:22px;letter-spacing:5px;font-family:ui-monospace,Menlo,monospace;text-transform:uppercase;}
+.co-err{display:none;color:var(--bad);font-size:12px;font-weight:700;margin:8px 2px 0;line-height:1.5;}
+.co-info-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #ECEFF1;font-size:13px;}
+.co-info-row:last-of-type{border-bottom:none;}
+.co-info-row .co-code{font-family:ui-monospace,Menlo,monospace;letter-spacing:1.5px;color:var(--money);font-weight:800;}
 
 /* ボトムナビ */
-.bottomnav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);display:flex;z-index:20;box-shadow:0 -2px 10px rgba(0,0,0,.06);max-width:480px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom);}
+/* 初期は隠す。ログインが済んで finishInit を通ったときだけ表示する（未ログインで中に入れないように） */
+.bottomnav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);display:none;z-index:20;box-shadow:0 -2px 10px rgba(0,0,0,.06);max-width:480px;margin:0 auto;padding-bottom:env(safe-area-inset-bottom);}
 .bn{flex:1;border:none;background:none;padding:8px 0 9px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--sub);}
 .bn.active{color:var(--money);}
 .bn-icon{font-size:20px;} .bn-txt{font-size:10px;font-weight:700;}
@@ -548,6 +569,80 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
   </div>
 </div>
 
+<!-- ═══ 会社の選択（新規登録の直後に1回だけ通る） ═══
+     この画面を抜けると userIndex/<uid> に会社IDが書かれ、以後は出てこない。 -->
+<div id="company" class="screen">
+  <div class="login-card">
+
+    <!-- ① 二択 -->
+    <div class="co-step active" id="co-step-choice">
+      <div class="login-logo">🚛</div>
+      <div class="login-title">はじめまして</div>
+      <div class="login-sub">どちらの立場ですか？</div>
+      <button type="button" class="choice primary" onclick="coStep('create')">
+        <div class="choice-t">🏢 会社をあたらしく始める</div>
+        <div class="choice-d">あなたが「まとめ役」になります。仲間を招待するコードが発行されます。</div>
+      </button>
+      <button type="button" class="choice" onclick="coStep('join')">
+        <div class="choice-t">🤝 会社に参加する</div>
+        <div class="choice-d">まとめ役からもらった招待コードを入力してください。</div>
+      </button>
+      <div class="login-foot">わからないときは、いつも一緒に働いている人に聞いてください</div>
+      <span class="login-forgot" style="text-align:center;" onclick="logout()">別のアカウントでログインする</span>
+    </div>
+
+    <!-- ② 会社をあたらしく始める -->
+    <div class="co-step" id="co-step-create">
+      <div class="login-logo">🏢</div>
+      <div class="login-title">会社をあたらしく始める</div>
+      <div class="login-sub">あなたが「まとめ役」になります</div>
+      <div class="q">
+        <div class="login-field-label">会社名・屋号</div>
+        <input type="text" class="field" id="co-name" placeholder="例）〇〇運送">
+      </div>
+      <div class="q">
+        <div class="login-field-label">営業所名（任意）</div>
+        <input type="text" class="field" id="co-office" placeholder="例）八戸営業所">
+      </div>
+      <div class="co-err" id="co-create-err"></div>
+      <button class="login-btn" id="co-create-btn" onclick="createCompany()">この内容で始める</button>
+      <button class="login-btn" style="background:#ECEFF1;color:var(--sub);box-shadow:none;" onclick="coStep('choice')">もどる</button>
+      <div class="login-foot">会社名は帳票（点呼記録簿など）の見出しに使われます</div>
+    </div>
+
+    <!-- ③ 発行された招待コード -->
+    <div class="co-step" id="co-step-done">
+      <div class="login-logo">🎉</div>
+      <div class="login-title"><span id="co-done-name"></span> の準備ができました</div>
+      <div class="login-sub">このコードを仲間に伝えてください</div>
+      <div class="code-box">
+        <div class="code-cap">招待コード</div>
+        <div class="code-val" id="co-done-code">--------</div>
+        <div class="code-note">紛らわしい文字（0・O・1・I）は使いません</div>
+      </div>
+      <button type="button" class="copy-btn" onclick="copyInviteCode('co-done-code')">📋 コードをコピー</button>
+      <button class="login-btn" onclick="finishInit()">アプリを使いはじめる</button>
+      <div class="login-foot">コードは設定画面からいつでも確認できます</div>
+    </div>
+
+    <!-- ④ 会社に参加する -->
+    <div class="co-step" id="co-step-join">
+      <div class="login-logo">🤝</div>
+      <div class="login-title">会社に参加する</div>
+      <div class="login-sub">まとめ役からもらった<br>招待コードを入力してください</div>
+      <div class="q">
+        <div class="login-field-label">招待コード（8文字）</div>
+        <input type="text" class="field code-input" id="co-code" placeholder="XXXXXXXX" autocapitalize="characters" autocomplete="off" maxlength="8">
+      </div>
+      <div class="co-err" id="co-join-err"></div>
+      <button class="login-btn" id="co-join-btn" onclick="joinCompany()">このコードで参加する</button>
+      <button class="login-btn" style="background:#ECEFF1;color:var(--sub);box-shadow:none;" onclick="coStep('choice')">もどる</button>
+      <div class="login-foot">コードがわからないときは、まとめ役に聞いてください</div>
+    </div>
+
+  </div>
+</div>
+
 <!-- ═══ ホーム ═══ -->
 <div id="home" class="screen">
   <!-- ヘッダーは「表示だけ」。ボタンは一切置かない。
@@ -616,13 +711,24 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 <div id="settings" class="screen">
   <div class="subheader drive"><div><h1>ユーザー情報設定</h1><div class="subheader-sub">氏名・会社名などの登録内容</div></div></div>
   <div class="form-body">
+    <!-- 会社の情報。会社名・営業所名は会社ぜんたいで共通（まとめ役だけが直せる）。 -->
+    <div class="section" id="settings-company-section">
+      <div class="section-title">🏢 会社の情報</div>
+      <div class="q"><div class="q-label">会社名</div><input type="text" class="field" id="settings-company" placeholder="例）〇〇運送"></div>
+      <div class="q"><div class="q-label">営業所名</div><input type="text" class="field" id="settings-office" placeholder="例）〇〇営業所"></div>
+      <div style="font-size:11px;color:var(--sub);margin:-6px 2px 12px;line-height:1.5;">※点呼簿・業務簿・車両点検の帳票Excelのヘッダーに使われます（会社の全員で共通）</div>
+      <div id="settings-company-readonly-note" style="display:none;font-size:11px;color:var(--sub);margin:-6px 2px 12px;line-height:1.5;">※会社名・営業所名を直せるのはまとめ役だけです</div>
+      <div id="settings-invite-wrap" style="display:none">
+        <div class="co-info-row"><span>招待コード</span><span class="co-code" id="settings-invite-code">--------</span></div>
+        <div class="co-info-row"><span>メンバー</span><span id="settings-member-count">…</span></div>
+        <button type="button" class="copy-btn" style="margin-top:12px;" onclick="copyInviteCode('settings-invite-code')">📋 招待コードをコピー</button>
+        <div style="font-size:11px;color:var(--sub);margin:8px 2px 0;line-height:1.6;">※このコードを渡した人だけが、この会社に参加できます</div>
+      </div>
+    </div>
     <div class="section">
       <div class="section-title">🙍 基本情報</div>
       <div class="q"><div class="q-label">氏名（表示名）</div><input type="text" class="field" id="settings-name" placeholder="例）北上奈世"></div>
       <div style="font-size:11px;color:var(--sub);margin:-6px 2px 12px;line-height:1.5;">※帳票・ドライバー選択・管理画面の表示名として使われます</div>
-      <div class="q"><div class="q-label">会社名</div><input type="text" class="field" id="settings-company" placeholder="例）〇〇運送"></div>
-      <div class="q"><div class="q-label">営業所名</div><input type="text" class="field" id="settings-office" placeholder="例）〇〇営業所"></div>
-      <div style="font-size:11px;color:var(--sub);margin:-6px 2px 12px;line-height:1.5;">※点呼簿・業務簿・車両点検の帳票Excelのヘッダーに使われます</div>
       <div class="q" style="margin-bottom:0"><div class="q-label">車両番号</div><input type="text" class="field" id="settings-vehicle" placeholder="例）八戸り3222"></div>
       <div style="font-size:11px;color:var(--sub);margin:6px 2px 0;line-height:1.5;">※点呼簿の車両番号欄に自動で入る番号です</div>
     </div>
@@ -1060,6 +1166,216 @@ const IS_STAGING = true;
 const DB_ROOT = IS_STAGING ? 'staging' : '';
 function dref(path){ return db.ref(DB_ROOT ? (DB_ROOT + '/' + path) : path); }
 
+/* ══════════════════════ 会社（テナント）の切り分け ══════════════════════
+   データは companies/<会社ID>/users/<uid>/... の形で会社ごとに完全に分かれている。
+   会社IDはログイン時に userIndex/<uid> から引いて currentCompanyId に入れる。
+   会社の下を触るときは必ず cref / uref を使うこと（dref('users/...') は禁止）。 */
+var currentCompanyId = null;
+
+/* 会社の下を指す（例: cref('users') → companies/<cid>/users） */
+function cref(path){
+  if(!currentCompanyId) throw new Error('会社が未確定です');
+  return dref('companies/' + currentCompanyId + (path ? '/' + path : ''));
+}
+/* 会社の中の、ある人のデータを指す（例: uref(uid,'profile')） */
+function uref(uid, path){
+  return cref('users/' + uid + (path ? '/' + path : ''));
+}
+
+/* 会社の情報（名前・営業所名・招待コード・作成者）。ログイン時に1回だけ読む */
+var currentCompanyMeta = null;
+/* 新規登録で入力された氏名。会社を決めたあとのプロフィール作成で使う */
+var pendingRegisterName = '';
+
+/* 招待コードに使う文字。紛らわしい 0/O・1/I/L は入れない（口頭・紙で伝えるため） */
+var INVITE_CODE_CHARS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+var INVITE_CODE_LEN = 8;
+function genInviteCode(){
+  var a = new Uint32Array(INVITE_CODE_LEN);
+  if(window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
+  else for(var j=0;j<INVITE_CODE_LEN;j++) a[j] = Math.floor(Math.random()*0xFFFFFFFF);
+  var out='';
+  for(var i=0;i<INVITE_CODE_LEN;i++) out += INVITE_CODE_CHARS.charAt(a[i] % INVITE_CODE_CHARS.length);
+  return out;
+}
+/* 空いているコードを見つけて予約する。埋まっていたら引き直す（最大5回） */
+function reserveInviteCode(cid, attempt){
+  var code = genInviteCode();
+  return dref('inviteCodes/'+code).once('value').then(function(snap){
+    if(snap.exists()){
+      if(attempt >= 4) throw new Error('招待コードを発行できませんでした。もう一度お試しください');
+      return reserveInviteCode(cid, attempt+1);
+    }
+    return dref('inviteCodes/'+code).set(cid).then(function(){ return code; });
+  });
+}
+
+/* 会社の選択画面（新規登録の直後・会社が未確定のときだけ出る） */
+function showCompanyChoice(){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('company').classList.add('active');
+  var nav=document.querySelector('.bottomnav'); if(nav) nav.style.display='none';
+  coStep('choice');
+  window.scrollTo(0,0);
+}
+function coStep(name){
+  document.querySelectorAll('.co-step').forEach(function(e){e.classList.remove('active');});
+  var el=document.getElementById('co-step-'+name); if(el) el.classList.add('active');
+  ['co-create-err','co-join-err'].forEach(function(id){
+    var e=document.getElementById(id); if(e) e.style.display='none';
+  });
+  window.scrollTo(0,0);
+}
+function coError(id, msg){
+  var e=document.getElementById(id);
+  e.textContent=msg; e.style.display='block';
+}
+/* データベースからのエラーを、そのまま出さずに読める日本語にする。
+   生のエラーはコンソールに出しているので、原因調査はそちらで行う。 */
+function dbErrMsg(err){
+  var m = String((err && err.message) || err || '');
+  if(m.indexOf('permission_denied')>=0 || m.indexOf('PERMISSION_DENIED')>=0)
+    return 'この操作が許可されていません。しばらくしてからもう一度お試しください（続くときは管理者にご連絡ください）';
+  if(m.indexOf('network')>=0 || m.indexOf('NETWORK')>=0 || m.indexOf('offline')>=0)
+    return '通信エラーです。ネット接続を確認してからもう一度お試しください';
+  if(m.indexOf('招待コード')>=0) return m;
+  return 'うまくいきませんでした。しばらくしてからもう一度お試しください';
+}
+
+/* ① 会社をあたらしく始める（押した人がまとめ役になる） */
+function createCompany(){
+  var name=document.getElementById('co-name').value.trim();
+  var office=document.getElementById('co-office').value.trim();
+  if(!name){ coError('co-create-err','会社名を入力してください'); return; }
+  if(!currentUser){ coError('co-create-err','ログインし直してください'); return; }
+  var btn=document.getElementById('co-create-btn'); btn.disabled=true;
+  var cid = dref('companies').push().key;
+  var code = null;
+  reserveInviteCode(cid, 0).then(function(c){
+    code = c;
+    return dref('companies/'+cid+'/meta').set({
+      name: name,
+      office: office,
+      inviteCode: code,
+      createdBy: currentUser.uid,
+      /* 承認待ちの人が「まとめ役に連絡する」ためのメール。同じ会社の人にしか見えない */
+      contactEmail: currentUser.email || '',
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    });
+  }).then(function(){
+    currentCompanyId = cid;
+    currentCompanyMeta = {name:name, office:office, inviteCode:code, createdBy:currentUser.uid, contactEmail:currentUser.email||''};
+    var profile = {
+      name: pendingRegisterName || (currentUser.email||'まとめ役').split('@')[0],
+      role: 'manager', status: 'approved', email: currentUser.email||'',
+      targetCount: 100, workDaysPerMonth: 22,
+      createdAt: firebase.database.ServerValue.TIMESTAMP
+    };
+    return uref(currentUser.uid, 'profile').set(profile).then(function(){
+      return dref('userIndex/'+currentUser.uid).set(cid);
+    }).then(function(){
+      currentProfile = profile;
+      document.getElementById('co-done-name').textContent = name;
+      document.getElementById('co-done-code').textContent = code;
+      coStep('done');
+    });
+  }).catch(function(err){
+    console.error('会社の作成に失敗', err);
+    coError('co-create-err','会社を作れませんでした。'+dbErrMsg(err));
+  }).finally(function(){ btn.disabled=false; });
+}
+
+/* ② 会社に参加する（招待コードを入れて承認待ちに入る） */
+function joinCompany(){
+  var code=document.getElementById('co-code').value.trim().toUpperCase();
+  if(!code){ coError('co-join-err','招待コードを入力してください'); return; }
+  /* Firebaseのパスに使えない文字（. # $ [ ] /）を弾く。英数字だけ通す */
+  if(!/^[A-Z0-9]{4,16}$/.test(code)){ coError('co-join-err','招待コードは英数字です。入力を確かめてください'); return; }
+  if(!currentUser){ coError('co-join-err','ログインし直してください'); return; }
+  var btn=document.getElementById('co-join-btn'); btn.disabled=true;
+  dref('inviteCodes/'+code).once('value').then(function(snap){
+    var cid=snap.val();
+    if(!cid) throw new Error('CODE_NOT_FOUND');
+    currentCompanyId = cid;
+    return dref('companies/'+cid+'/meta/name').once('value').then(function(ns){
+      var coName = ns.val()||'';
+      if(!coName) throw new Error('CODE_NOT_FOUND');
+      currentCompanyMeta = {name: coName};
+      var profile = {
+        name: pendingRegisterName || (currentUser.email||'ドライバー').split('@')[0],
+        role: 'driver', status: 'pending', email: currentUser.email||'',
+        targetCount: 100, workDaysPerMonth: 22,
+        createdAt: firebase.database.ServerValue.TIMESTAMP
+      };
+      return uref(currentUser.uid, 'profile').set(profile).then(function(){
+        return dref('userIndex/'+currentUser.uid).set(cid);
+      }).then(function(){
+        currentProfile = profile;
+        /* 会社のまとめ役の連絡先を拾ってから承認待ち画面へ（拾えなくても止めない） */
+        return loadCompanyMeta().catch(function(){}).then(function(){
+          sendApprovalRequestEmail(profile);
+          showGate('pending');
+        });
+      });
+    });
+  }).catch(function(err){
+    currentCompanyId = null;
+    if(err && err.message==='CODE_NOT_FOUND'){
+      coError('co-join-err','コードが違います。まとめ役に確認してください');
+    } else {
+      console.error('会社への参加に失敗', err);
+      coError('co-join-err','参加できませんでした。'+dbErrMsg(err));
+    }
+  }).finally(function(){ btn.disabled=false; });
+}
+
+/* 会社の情報を読む。
+   招待コードは「参加のための鍵」なので、まとめ役以外には読ませない（ルール側で拒否される）。
+   そのため会社の情報はまとめて読まず、誰でも要る項目だけをここで読む。
+   招待コードは役割が確定したあとに loadInviteCode() で読み足す。 */
+function loadCompanyMeta(){
+  var base = 'companies/'+currentCompanyId+'/meta/';
+  var keys = ['name','office','contactEmail','createdBy'];
+  return Promise.all(keys.map(function(k){
+    return dref(base+k).once('value').then(function(s){ return s.val(); }).catch(function(){ return null; });
+  })).then(function(v){
+    currentCompanyMeta = {name:v[0]||'', office:v[1]||'', contactEmail:v[2]||'', createdBy:v[3]||''};
+  });
+}
+/* 招待コードを読み足す（まとめ役のときだけ。ドライバーは拒否されるので呼ばない） */
+function loadInviteCode(){
+  if(!isManager || !currentCompanyId) return Promise.resolve();
+  return cref('meta/inviteCode').once('value').then(function(s){
+    currentCompanyMeta = currentCompanyMeta || {};
+    currentCompanyMeta.inviteCode = s.val()||'';
+  }).catch(function(err){ console.warn('招待コードを読めませんでした', err); });
+}
+function companyName(){ return (currentCompanyMeta && currentCompanyMeta.name) || ''; }
+
+/* 招待コードをクリップボードへ。iOS Safari 等の古い環境向けに手動コピーの逃げ道も用意する */
+function copyInviteCode(elId){
+  var el=document.getElementById(elId); if(!el) return;
+  var text=(el.textContent||'').trim();
+  if(!text || text==='--------'){ toast('⚠️ コードがまだありません'); return; }
+  var done=function(){ toast('📋 招待コードをコピーしました'); };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(function(){ legacyCopy(text, done); });
+  } else {
+    legacyCopy(text, done);
+  }
+}
+function legacyCopy(text, done){
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    var ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    if(ok){ done(); return; }
+  }catch(e){}
+  toast('⚠️ コピーできませんでした。手で書き写してください');
+}
+
 /* ══════════════════════ 役割（ロール）について ══════════════════════
    3種類ある。
      owner   … サポート管理者（開発元）。まとめ役の全機能に加え、まとめ役の任命や
@@ -1108,7 +1424,7 @@ function sendApprovalRequestEmail(profile){
     driver_name: profile.name || '',
     driver_email: profile.email || '',
     registered_at: new Date().toLocaleString('ja-JP'),
-    to_email: MANAGER_EMAILS[0] || ''
+    to_email: managerContact()
   }).catch(function(err){ console.warn('承認依頼メールの送信に失敗しました', err); });
 }
 
@@ -1463,6 +1779,9 @@ function lastMonths(n){
 
 /* ══════════════════════ 画面切替 ══════════════════════ */
 function go(id){
+  /* ログインが済んでいないうちは、どのタブを押してもログイン画面から動かさない。
+     （未ログインでも下部タブからホームに入れてしまう不具合を防ぐ） */
+  if(!currentUser && id!=='login') id='login';
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active');});
   document.getElementById(id).classList.add('active');
   document.querySelectorAll('.bn').forEach(function(b){b.classList.remove('active');});
@@ -1598,19 +1917,13 @@ function submitAuth(){
   var btn=document.getElementById('auth-submit-btn');
   btn.disabled=true;
   if(authMode==='register'){
-    var name=document.getElementById('auth-name').value.trim() || 'ドライバー';
-    auth.createUserWithEmailAndPassword(email, pw).then(function(cred){
-      var isMgr = MANAGER_EMAILS.indexOf(email.toLowerCase())>=0;
-      var role = isMgr ? 'manager' : 'driver';
-      var status = isMgr ? 'approved' : 'pending'; // まとめ役は自動承認。それ以外は承認待ちからスタート
-      var profile = {name:name, role:role, status:status, email:email, targetCount:100, workDaysPerMonth:22, createdAt:firebase.database.ServerValue.TIMESTAMP};
-      return dref('users/'+cred.user.uid+'/profile').set(profile).then(function(){
-        currentUser=cred.user;
-        currentProfile=profile;
-        finishInit();
-        if(!isMgr) sendApprovalRequestEmail(profile);
-      });
-    }).catch(function(err){ showAuthError(authErrMsg(err)); }).finally(function(){btn.disabled=false;});
+    /* アカウントを作るだけ。プロフィールはまだ作らない。
+       このあと onAuthStateChanged が「会社が未確定」を見て会社の選択画面へ導き、
+       会社が決まった時点で companies/<会社ID>/users/<uid>/profile を作る。 */
+    pendingRegisterName = document.getElementById('auth-name').value.trim() || 'ドライバー';
+    auth.createUserWithEmailAndPassword(email, pw)
+      .catch(function(err){ showAuthError(authErrMsg(err)); })
+      .finally(function(){btn.disabled=false;});
   } else {
     auth.signInWithEmailAndPassword(email, pw).catch(function(err){
       showAuthError(authErrMsg(err));
@@ -1661,14 +1974,34 @@ function sendResetEmail(){
 auth.onAuthStateChanged(function(user){
   if(user){
     currentUser=user;
-    dref('users/'+user.uid+'/profile').once('value').then(function(snap){
+    /* まず「この人はどの会社か」を確定させる。ここが決まらないと何も読めない。
+       会社が無い＝新規登録した直後 → 会社の選択画面へ。 */
+    dref('userIndex/'+user.uid).once('value').then(function(idxSnap){
+      var cid = idxSnap.val();
+      if(!cid){ showCompanyChoice(); return; }
+      currentCompanyId = cid;
+      return loadCompanyMeta().then(function(){ return loadProfileAndInit(user); });
+    }).catch(function(err){
+      console.error('会社情報の読み込みに失敗しました', err);
+      showCompanyChoice();
+    });
+  } else {
+    currentUser=null; currentProfile=null; isManager=false; isOwner=false;
+    currentCompanyId=null; currentCompanyMeta=null; pendingRegisterName='';
+    go('login');
+  }
+});
+
+/* 会社が確定したあとの初期化（プロフィールを読んで画面を出す） */
+function loadProfileAndInit(user){
+  return uref(user.uid, 'profile').once('value').then(function(snap){
       var p=snap.val();
       if(p){
         currentProfile=p;
         /* 承認制を追加する前に作られた古いプロフィール（emailフィールドが無い）を、
            ここで一度だけ補完しておく。 */
         if(!p.email && user.email){
-          dref('users/'+user.uid+'/profile/email').set(user.email);
+          uref(user.uid, 'profile/email').set(user.email);
           currentProfile.email = user.email;
         }
         /* ★重要★ 承認制より前に作られたプロフィールには status が無い。
@@ -1679,9 +2012,9 @@ auth.onAuthStateChanged(function(user){
            status の書き込みは「DB上の role が manager の人」だけルールで許可されているので、
            まとめ役はここで自分の status を補完できる。補完し終えてから画面を出す。 */
         if(!p.status && (p.role==='manager' || p.role==='owner')){
-          dref('users/'+user.uid+'/profile/status').set('approved').then(function(){
+          uref(user.uid, 'profile/status').set('approved').then(function(){
             currentProfile.status='approved';
-            dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
+            uref(user.uid, 'profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
             finishInit();
           }).catch(function(err){
             console.warn('statusの補完に失敗', err);
@@ -1689,7 +2022,7 @@ auth.onAuthStateChanged(function(user){
           });
           return;
         }
-        dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
+        uref(user.uid, 'profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
         finishInit();
         return;
       }
@@ -1697,20 +2030,16 @@ auth.onAuthStateChanged(function(user){
          プロフィール作成に失敗したアカウント）は、ここで最低限のプロフィールを
          自動作成してログイン不能状態を防ぐ。登録フロー側の finishInit と
          二重に走っても最終的な内容は同じなので問題ない。 */
-      var role = MANAGER_EMAILS.indexOf((user.email||'').toLowerCase())>=0 ? 'manager' : 'driver';
-      var status = role==='manager' ? 'approved' : 'pending';
-      var fallbackProfile = {name:(user.email||'ドライバー').split('@')[0], role:role, status:status, email:user.email||'', targetCount:100, workDaysPerMonth:22, createdAt:firebase.database.ServerValue.TIMESTAMP};
-      dref('users/'+user.uid+'/profile').set(fallbackProfile).then(function(){
+      /* 会社には属しているのにプロフィールが無い（作成に失敗した等）。
+         安全側に倒して「ドライバー・承認待ち」で作り直す。まとめ役が承認すれば使える。 */
+      var fallbackProfile = {name:(user.email||'ドライバー').split('@')[0], role:'driver', status:'pending', email:user.email||'', targetCount:100, workDaysPerMonth:22, createdAt:firebase.database.ServerValue.TIMESTAMP};
+      return uref(user.uid, 'profile').set(fallbackProfile).then(function(){
         currentProfile=fallbackProfile;
-        dref('users/'+user.uid+'/profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
+        uref(user.uid, 'profile/lastLoginAt').set(firebase.database.ServerValue.TIMESTAMP);
         finishInit();
       });
     });
-  } else {
-    currentUser=null; currentProfile=null; isManager=false; isOwner=false;
-    go('login');
-  }
-});
+}
 
 function finishInit(){
   isOwner = currentProfile.role==='owner';
@@ -1731,22 +2060,28 @@ function finishInit(){
   }
   var nav=document.querySelector('.bottomnav'); if(nav) nav.style.display='flex';
   go('home');
-  if(isManager) updatePendingBadge();
+  if(isManager){ updatePendingBadge(); loadInviteCode(); }
 }
 
 /* 承認依頼メール(mailto)の宛先・件名・本文を組み立てる */
 function buildApprovalMailtoHref(){
-  var to = MANAGER_EMAILS[0] || '';
+  var to = managerContact();
   var name = (currentProfile && currentProfile.name) || '';
   var email = (currentUser && currentUser.email) || (currentProfile && currentProfile.email) || '';
   var when = new Date().toLocaleString('ja-JP');
   var subject = '軽貨物まるごとアプリ 利用申請（承認のお願い）';
   var body = '軽貨物まるごとアプリの利用申請です。\n\n'+
+    '会社: '+(companyName()||'（未設定）')+'\n'+
     '氏名: '+name+'\n'+
     '登録メール: '+email+'\n'+
     '申請日時: '+when+'\n\n'+
     '承認をお願いします。';
   return 'mailto:'+to+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+}
+
+/* 承認依頼の宛先＝その会社を作った人（まとめ役）のメール。会社の情報から引く */
+function managerContact(){
+  return (currentCompanyMeta && currentCompanyMeta.contactEmail) || MANAGER_EMAILS[0] || '';
 }
 
 /* 承認待ち／利用不可のゲート画面を表示し、下部タブは隠して他画面に行けないようにする */
@@ -1764,9 +2099,11 @@ function showGate(status){
   } else {
     icon.textContent='⏳';
     title.textContent='承認待ちです';
-    desc.innerHTML='管理者の許可をお待ちください。<br>承認されると自動でご利用いただけます。';
+    var co = companyName();
+    desc.innerHTML = (co ? '<b>'+esc(co)+'</b> への参加を申請しました。<br>' : '')
+      + 'まとめ役の承認をお待ちください。<br>承認されると自動でご利用いただけます。';
     document.getElementById('gate-mailto-btn').href = buildApprovalMailtoHref();
-    document.getElementById('gate-manager-email-val').textContent = MANAGER_EMAILS[0] || '（未設定）';
+    document.getElementById('gate-manager-email-val').textContent = managerContact() || '（未設定）';
     mailtoWrap.style.display='block';
   }
 }
@@ -1776,7 +2113,7 @@ function refreshHome(){
   var ym=monthKey(todayKey());
   document.getElementById('home-month').textContent=Number(ym.slice(5,7))+'月の収支';
 
-  dref('users/'+currentUser.uid+'/deliveries/'+todayKey()).once('value').then(function(snap){
+  uref(currentUser.uid, 'deliveries/'+todayKey()).once('value').then(function(snap){
     var v=snap.val();
     countVal = (v && v.count) || 0;
     syncCountViews();
@@ -1808,7 +2145,7 @@ function refreshHome(){
    ※今日ぶんの実績(todayCount)は、目標の逆算には入れない（今日やるべき数を出すため）。
      「あと何個か」の表示にだけ使う。 */
 function computeTodayGoalStats(uid, ym){
-  return dref('users/'+uid+'/deliveries').once('value').then(function(snap){
+  return uref(uid, 'deliveries').once('value').then(function(snap){
     var today = todayKey();
     var cumulative = 0, workedDaysBeforeToday = 0, todayCount = 0;
     snap.forEach(function(child){
@@ -1912,8 +2249,8 @@ function onEarnCountBlur(){
 /* 当月の売上・経費・税率別小計を集計 */
 function computeMonthlyStats(uid, ym){
   return Promise.all([
-    dref('users/'+uid+'/income').once('value'),
-    dref('users/'+uid+'/expenses').once('value')
+    uref(uid, 'income').once('value'),
+    uref(uid, 'expenses').once('value')
   ]).then(function(results){
     var incomeSnap=results[0], expenseSnap=results[1];
     var sales=0, expenseTotal=0, sum8=0, sum10=0;
@@ -1937,8 +2274,8 @@ function computeMonthlyStats(uid, ym){
 function loadChart(){
   var months=lastMonths(6);
   Promise.all([
-    dref('users/'+currentUser.uid+'/deliveries').once('value'),
-    dref('users/'+currentUser.uid+'/income').once('value')
+    uref(currentUser.uid, 'deliveries').once('value'),
+    uref(currentUser.uid, 'income').once('value')
   ]).then(function(results){
     var delSnap=results[0], incSnap=results[1];
     var cntByMonth={}, salesByMonth={};
@@ -2011,14 +2348,14 @@ function loadEarnForDate(){
   var date=earnDateKey();
   refreshEarnDateNote();
   if(!currentUser){ syncCountViews(); calcIncomeLive(); return; }
-  dref('users/'+currentUser.uid+'/deliveries/'+date).once('value').then(function(snap){
+  uref(currentUser.uid, 'deliveries/'+date).once('value').then(function(snap){
     var v=snap.val();
     countVal=(v && v.count)||0;
     syncCountViews();
     calcIncomeLive();
   });
   /* その日の収入レコード（あれば最初の1件）を入力欄に戻す */
-  dref('users/'+currentUser.uid+'/income').once('value').then(function(snap){
+  uref(currentUser.uid, 'income').once('value').then(function(snap){
     var found=null;
     snap.forEach(function(c){ var v=c.val(); if(!found && v && v.date===date) found=v; });
     document.getElementById('in-content').value = found ? (found.content||'') : '';
@@ -2066,17 +2403,17 @@ function saveEarn(){
   var uid=currentUser.uid;
   var TS=firebase.database.ServerValue.TIMESTAMP;
 
-  var saveCountP = dref('users/'+uid+'/deliveries/'+date).set({count:count, updatedAt:TS});
+  var saveCountP = uref(uid, 'deliveries/'+date).set({count:count, updatedAt:TS});
 
   var saveIncomeP;
   if(unit>0 && count>0){
-    saveIncomeP = dref('users/'+uid+'/income').once('value').then(function(snap){
+    saveIncomeP = uref(uid, 'income').once('value').then(function(snap){
       var key=null;
       snap.forEach(function(c){ var v=c.val(); if(!key && v && v.date===date) key=c.key; });
       var data={date:date, content:content, count:count, unitPrice:unit, amount:amount, updatedAt:TS};
-      if(key) return dref('users/'+uid+'/income/'+key).update(data);
+      if(key) return uref(uid, 'income/'+key).update(data);
       data.createdAt=TS;
-      return dref('users/'+uid+'/income').push().set(data);
+      return uref(uid, 'income').push().set(data);
     });
   } else {
     saveIncomeP = Promise.resolve();
@@ -2093,7 +2430,7 @@ function saveEarn(){
 function loadIncomeList(){
   var listEl=document.getElementById('income-list');
   listEl.innerHTML='<div class="empty">読み込み中…</div>';
-  dref('users/'+currentUser.uid+'/income').limitToLast(20).once('value').then(function(snap){
+  uref(currentUser.uid, 'income').limitToLast(20).once('value').then(function(snap){
     var items=[];
     snap.forEach(function(c){ items.push(c.val()); });
     items.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
@@ -2196,7 +2533,7 @@ function saveExpense(){
     if(picked){ total+=price; if(rate===8) sum8+=price; else sum10+=price; }
   });
   if(!lines.length){ toast('⚠️ レシートの行を入力してください'); return; }
-  var ref=dref('users/'+currentUser.uid+'/expenses').push();
+  var ref=uref(currentUser.uid, 'expenses').push();
   ref.set({date:date, store:store, lines:lines, total:total, sum8:sum8, sum10:sum10, createdAt:firebase.database.ServerValue.TIMESTAMP})
     .then(function(){
       toast('✅ 経費を記録しました');
@@ -2206,7 +2543,7 @@ function saveExpense(){
 function loadExpenseList(){
   var listEl=document.getElementById('expense-list');
   listEl.innerHTML='<div class="empty">読み込み中…</div>';
-  dref('users/'+currentUser.uid+'/expenses').limitToLast(20).once('value').then(function(snap){
+  uref(currentUser.uid, 'expenses').limitToLast(20).once('value').then(function(snap){
     var items=[];
     snap.forEach(function(c){ items.push(c.val()); });
     items.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
@@ -2225,7 +2562,7 @@ function saveTarget(){
   var v=num(document.getElementById('target-input').value);
   if(v<=0) v=100;
   goalTarget=v;
-  dref('users/'+currentUser.uid+'/profile/targetCount').set(v);
+  uref(currentUser.uid, 'profile/targetCount').set(v);
   syncCountViews();
   refreshTodayGoalCard();
   toast('🎯 目標を更新しました');
@@ -2235,7 +2572,7 @@ function saveWorkDays(){
   var v=num(document.getElementById('workdays-input').value);
   if(v<=0) v=22;
   workDays=v;
-  dref('users/'+currentUser.uid+'/profile/workDaysPerMonth').set(v);
+  uref(currentUser.uid, 'profile/workDaysPerMonth').set(v);
   refreshTodayGoalCard();
   toast('🎯 稼働予定日数を更新しました');
 }
@@ -2244,9 +2581,32 @@ function saveWorkDays(){
 function loadSettingsScreen(){
   if(!currentProfile) return;
   document.getElementById('settings-name').value = currentProfile.name||'';
-  document.getElementById('settings-company').value = currentProfile.companyName||'';
-  document.getElementById('settings-office').value = currentProfile.officeName||'';
   document.getElementById('settings-vehicle').value = currentProfile.vehicle||'';
+  /* 会社名・営業所名は会社ぜんたいの設定。直せるのはまとめ役だけ。
+     （旧データ用に、会社側が空なら本人のプロフィールの値を出す） */
+  var meta = currentCompanyMeta || {};
+  var coEl=document.getElementById('settings-company'), ofEl=document.getElementById('settings-office');
+  coEl.value = meta.name || currentProfile.companyName || '';
+  ofEl.value = meta.office || currentProfile.officeName || '';
+  coEl.disabled = !isManager; ofEl.disabled = !isManager;
+  var lockStyle = isManager ? '' : '#EEEEEE';
+  coEl.style.background = lockStyle; ofEl.style.background = lockStyle;
+  document.getElementById('settings-company-readonly-note').style.display = isManager ? 'none' : 'block';
+  /* 招待コードとメンバー数はまとめ役だけに見せる */
+  var wrap=document.getElementById('settings-invite-wrap');
+  if(isManager){
+    wrap.style.display='block';
+    document.getElementById('settings-invite-code').textContent = meta.inviteCode || '--------';
+    cref('users').once('value').then(function(snap){
+      var n=0; snap.forEach(function(c){
+        var pr=(c.val()||{}).profile||{};
+        if(pr.role!=='owner' && profileStatus(pr)==='approved') n++;
+      });
+      document.getElementById('settings-member-count').textContent = n+'人';
+    }).catch(function(){ document.getElementById('settings-member-count').textContent='—'; });
+  } else {
+    wrap.style.display='none';
+  }
   document.getElementById('settings-email').value = currentProfile.email||(currentUser&&currentUser.email)||'';
   document.getElementById('settings-gemini-key').value = localStorage.getItem(GEMINI_KEY_STORAGE)||'';
   var msg=document.getElementById('settings-msg'); msg.style.display='none';
@@ -2271,9 +2631,16 @@ function saveProfileSettings(){
   var company=document.getElementById('settings-company').value.trim();
   var office=document.getElementById('settings-office').value.trim();
   var vehicle=document.getElementById('settings-vehicle').value.trim();
-  var updates={name:name, companyName:company, officeName:office, vehicle:vehicle};
-  dref('users/'+currentUser.uid+'/profile').update(updates).then(function(){
-    currentProfile.name=name; currentProfile.companyName=company; currentProfile.officeName=office; currentProfile.vehicle=vehicle;
+  var updates={name:name, vehicle:vehicle};
+  uref(currentUser.uid, 'profile').update(updates).then(function(){
+    currentProfile.name=name; currentProfile.vehicle=vehicle;
+    /* 会社名・営業所名は会社ぜんたいの設定なので、まとめ役のときだけ会社側を書き換える */
+    if(!isManager) return null;
+    return cref('meta').update({name:company, office:office}).then(function(){
+      currentCompanyMeta = currentCompanyMeta || {};
+      currentCompanyMeta.name = company; currentCompanyMeta.office = office;
+    });
+  }).then(function(){
     document.getElementById('header-username').textContent = name+'さん';
     msg.style.color='var(--good)'; msg.textContent='✅ 保存しました'; msg.style.display='block';
     toast('✅ ユーザー情報を保存しました');
@@ -2326,7 +2693,7 @@ function fmtDriveDate(){
   return (d.getMonth()+1)+'月'+d.getDate()+'日';
 }
 function loadTenko(){
-  dref('users/'+currentUser.uid+'/tenko/'+driveDateKey()).once('value').then(function(snap){
+  uref(currentUser.uid, 'tenko/'+driveDateKey()).once('value').then(function(snap){
     var v=snap.val();
     var defName=(currentProfile&&currentProfile.name)||'';
     var defVehicle=(currentProfile&&currentProfile.vehicle)||'';
@@ -2393,7 +2760,7 @@ function rememberOption(key, value){
   if(arr.length>OPTION_MAX) arr=arr.slice(0,OPTION_MAX);
   if(!currentProfile.options) currentProfile.options={};
   currentProfile.options[key]=arr;
-  dref('users/'+currentUser.uid+'/profile/options/'+key).set(arr);
+  uref(currentUser.uid, 'profile/options/'+key).set(arr);
 }
 /* 候補チップを描く。候補が無い間は何も出さない（初回は普通に手で入力してもらう） */
 function renderOptionChips(containerId, key, inputId){
@@ -2413,7 +2780,7 @@ function rememberVehicle(v){
   if(!v || !currentUser) return;
   if(currentProfile && currentProfile.vehicle===v) return;
   if(currentProfile) currentProfile.vehicle=v;
-  dref('users/'+currentUser.uid+'/profile/vehicle').set(v);
+  uref(currentUser.uid, 'profile/vehicle').set(v);
 }
 function saveTenko(){
   var data={
@@ -2440,7 +2807,7 @@ function saveTenko(){
   rememberOption('executor', data.post.executor);
   renderOptionChips('tenko-pre-executor-chips','executor','tenko-pre-executor');
   renderOptionChips('tenko-post-executor-chips','executor','tenko-post-executor');
-  dref('users/'+currentUser.uid+'/tenko/'+driveDateKey()).set(data)
+  uref(currentUser.uid, 'tenko/'+driveDateKey()).set(data)
     .then(function(){ toast('✅ 点呼を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
 }
@@ -2452,7 +2819,7 @@ function calcGyomuDistance(){
   document.getElementById('gyomu-distance').textContent = d+' km';
 }
 function loadGyomu(){
-  dref('users/'+currentUser.uid+'/gyomu/'+driveDateKey()).once('value').then(function(snap){
+  uref(currentUser.uid, 'gyomu/'+driveDateKey()).once('value').then(function(snap){
     var v=snap.val();
     if(v){
       document.getElementById('gyomu-driver').value=v.driver||(currentProfile&&currentProfile.name)||'';
@@ -2487,14 +2854,14 @@ function saveGyomu(){
     updatedAt: firebase.database.ServerValue.TIMESTAMP
   };
   rememberVehicle(data.vehicle);
-  dref('users/'+currentUser.uid+'/gyomu/'+driveDateKey()).set(data)
+  uref(currentUser.uid, 'gyomu/'+driveDateKey()).set(data)
     .then(function(){ toast('✅ 業務簿を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
 }
 
 /* ══════════════════════ 運行記録：車両点検 ══════════════════════ */
 function loadVehicleCheck(){
-  dref('users/'+currentUser.uid+'/vehicleCheck/'+driveDateKey()).once('value').then(function(snap){
+  uref(currentUser.uid, 'vehicleCheck/'+driveDateKey()).once('value').then(function(snap){
     var v=snap.val();
     if(v){
       for(var i=1;i<=15;i++){ setCheckValue('vc'+i, v['item'+i]||'ok'); }
@@ -2506,7 +2873,7 @@ function saveVehicleCheck(){
   var data={};
   for(var i=1;i<=15;i++){ data['item'+i]=getCheckValue('vc'+i); }
   data.updatedAt=firebase.database.ServerValue.TIMESTAMP;
-  dref('users/'+currentUser.uid+'/vehicleCheck/'+driveDateKey()).set(data)
+  uref(currentUser.uid, 'vehicleCheck/'+driveDateKey()).set(data)
     .then(function(){ toast('✅ 車両点検を記録しました'); })
     .catch(function(err){ toast('⚠️ 保存に失敗しました: '+err.message); });
 }
@@ -2549,12 +2916,12 @@ function loadTeam(){
   pendingEl.innerHTML='<div class="empty">読み込み中…</div>';
   teamEl.innerHTML='<div class="empty">読み込み中…</div>';
   var ym=monthKey(todayKey());
-  dref('users').once('value').then(function(snap){
+  cref('users').once('value').then(function(snap){
     var uids=[]; snap.forEach(function(c){uids.push(c.key);});
     return Promise.all(uids.map(function(uid){
       return Promise.all([
-        dref('users/'+uid+'/profile').once('value'),
-        dref('users/'+uid+'/deliveries/'+todayKey()).once('value'),
+        uref(uid, 'profile').once('value'),
+        uref(uid, 'deliveries/'+todayKey()).once('value'),
         computeMonthlyStats(uid, ym)
       ]).then(function(r){
         var profile=r[0].val()||{}; var today=r[1].val()||{count:0}; var stats=r[2];
@@ -2599,7 +2966,7 @@ function loadTeam(){
       var cls = r.profit>=0?'good':'bad';
       var stopBtn = r.role==='manager' ? '' : '<button class="team-btn stop" onclick="suspendUser(\''+r.uid+'\')">利用停止</button>';
       /* まとめ役はこのボタン1つで、その人の点呼簿・業務記録・日常点検を開いてPDF保存できる */
-      var promoteBtn = (isOwner && r.role!=='manager')
+      var promoteBtn = (isManager && r.role!=='manager')
         ? '<button class="team-btn promote" onclick="promoteToManager(\''+r.uid+'\')">👑 まとめ役にする</button>' : '';
       var docBtn = '<button class="team-btn doc" onclick="openMemberLedger(\''+r.uid+'\')">📄 書類</button>';
       return '<div class="team-item"><div class="team-avatar">'+esc((r.name||'ド').charAt(0))+'</div>'+
@@ -2629,12 +2996,12 @@ function bizMonths(ym, n){
 function collectMemberStats(uid, monthKeys, ym){
   var range=monthRange(ym);
   return Promise.all([
-    dref('users/'+uid+'/income').once('value'),
-    dref('users/'+uid+'/expenses').once('value'),
-    dref('users/'+uid+'/deliveries').once('value'),
-    dref('users/'+uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-    dref('users/'+uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-    dref('users/'+uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+    uref(uid, 'income').once('value'),
+    uref(uid, 'expenses').once('value'),
+    uref(uid, 'deliveries').once('value'),
+    uref(uid, 'tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    uref(uid, 'gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    uref(uid, 'vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
   ]).then(function(r){
     var byMonth={};
     monthKeys.forEach(function(k){ byMonth[k]={sales:0, expense:0, count:0, days:0}; });
@@ -2789,34 +3156,35 @@ function renderOwnerPanel(owners){
           + '<div class="team-sub">一覧・人数・売上の集計には含まれません</div>'
           + '<div class="team-sub">他のメンバーの画面には表示されません</div></div></div>';
       }).join('')
-    + '<div class="owner-panel-note">まとめ役（会社の責任者）を決めるときは、下のメンバー一覧にある「👑 まとめ役にする」を押してください。</div>';
+    + '<div class="owner-panel-note">まとめ役を増やすときは、下のメンバー一覧にある「👑 まとめ役にする」を押してください。会社をつくった人は外せません。</div>';
 }
-/* まとめ役の任命。ownerだけが実行できる（セキュリティルール側でも role の書き換えを制限している） */
+/* まとめ役の任命。同じ会社のまとめ役（とサポート管理者）ができる。
+   セキュリティルール側でも「その会社のmanagerだけが role を書ける」と制限している。 */
 function promoteToManager(uid){
-  if(!isOwner){ toast('⚠️ この操作はサポート管理者だけができます'); return; }
+  if(!isManager){ toast('⚠️ この操作はまとめ役だけができます'); return; }
   if(!confirm('このメンバーを「まとめ役」にします。\n\nまとめ役は、全員の記録・書類・経営レポートを見られるようになります。よろしいですか？')) return;
-  dref('users/'+uid+'/profile/role').set('manager').then(function(){
-    return dref('users/'+uid+'/profile/status').set('approved');
+  uref(uid, 'profile/role').set('manager').then(function(){
+    return uref(uid, 'profile/status').set('approved');
   }).then(function(){
     toast('👑 まとめ役にしました');
     loadTeam(); updatePendingBadge();
   }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
 }
 function approveUser(uid){
-  dref('users/'+uid+'/profile/status').set('approved').then(function(){
+  uref(uid, 'profile/status').set('approved').then(function(){
     toast('✅ 承認しました');
     loadTeam(); updatePendingBadge();
   }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
 }
 function rejectUser(uid){
-  dref('users/'+uid+'/profile/status').set('rejected').then(function(){
+  uref(uid, 'profile/status').set('rejected').then(function(){
     toast('🚫 拒否しました');
     loadTeam(); updatePendingBadge();
   }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
 }
 function suspendUser(uid){
   if(!confirm('このメンバーを利用停止にしますか？（再度使うには承認待ち一覧から承認し直します）')) return;
-  dref('users/'+uid+'/profile/status').set('rejected').then(function(){
+  uref(uid, 'profile/status').set('rejected').then(function(){
     toast('⛔ 利用停止にしました');
     loadTeam(); updatePendingBadge();
   }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
@@ -2824,7 +3192,7 @@ function suspendUser(uid){
 /* ヘッダーの「👥全員を見る」に承認待ち件数バッジを出す */
 function updatePendingBadge(){
   if(!isManager) return;
-  dref('users').once('value').then(function(snap){
+  cref('users').once('value').then(function(snap){
     var n=0;
     snap.forEach(function(c){
       var p=(c.val()||{}).profile||{};
@@ -2867,10 +3235,10 @@ function monthRange(ym){
   return { start: ym+'-01', end: ym+'-'+(last<10?'0'+last:String(last)) };
 }
 function getApprovedUsersForCheck(){
-  return dref('users').once('value').then(function(snap){
+  return cref('users').once('value').then(function(snap){
     var uids=[]; snap.forEach(function(c){uids.push(c.key);});
     return Promise.all(uids.map(function(uid){
-      return dref('users/'+uid+'/profile').once('value').then(function(s){
+      return uref(uid, 'profile').once('value').then(function(s){
         var p=s.val()||{};
         return {uid:uid, name:p.name||'名称未設定', status:profileStatus(p), role:p.role||'driver'};
       });
@@ -2897,9 +3265,9 @@ function loadFillCheckDaily(){
     if(!users.length){ el.innerHTML='<div class="empty">承認済みメンバーがいません</div>'; return; }
     return Promise.all(users.map(function(u){
       return Promise.all([
-        dref('users/'+u.uid+'/tenko/'+d).once('value'),
-        dref('users/'+u.uid+'/gyomu/'+d).once('value'),
-        dref('users/'+u.uid+'/vehicleCheck/'+d).once('value')
+        uref(u.uid, 'tenko/'+d).once('value'),
+        uref(u.uid, 'gyomu/'+d).once('value'),
+        uref(u.uid, 'vehicleCheck/'+d).once('value')
       ]).then(function(r){
         var tenko=r[0].val(), gyomu=r[1].val(), vc=r[2].val();
         return {
@@ -2940,9 +3308,9 @@ function loadFillCheckMonthly(){
     if(!users.length){ el.innerHTML='<div class="empty">承認済みメンバーがいません</div>'; return; }
     return Promise.all(users.map(function(u){
       return Promise.all([
-        dref('users/'+u.uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-        dref('users/'+u.uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-        dref('users/'+u.uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+        uref(u.uid, 'tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+        uref(u.uid, 'gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+        uref(u.uid, 'vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
       ]).then(function(r){
         var tenkoSnap=r[0], gyomuSnap=r[1], vcSnap=r[2];
         var tenkoDays=0, gyomuDays=0, vcDays=0;
@@ -3028,9 +3396,9 @@ function loadCalendar(){
   grid.innerHTML='<div class="empty">読み込み中…</div>';
   var range=monthRange(ym);
   Promise.all([
-    dref('users/'+uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-    dref('users/'+uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-    dref('users/'+uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+    uref(uid, 'tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    uref(uid, 'gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    uref(uid, 'vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
   ]).then(function(r){
     var tenkoByDate={}, gyomuByDate={}, vcByDate={};
     r[0].forEach(function(c){ tenkoByDate[c.key]=c.val(); });
@@ -3131,7 +3499,7 @@ function setExportStatus(msg, cls){
 
 /* ── 未実装項目のマッピング（ここ1箇所にまとめる）──
    会社名・営業所名は exportLedgerExcel() 内で出力対象ドライバーの
-   profile.companyName / profile.officeName を読んでここにセットしている（未設定なら空欄）。
+   会社の設定（companies/<会社ID>/meta の name / office）を読んでここにセットしている（未設定なら空欄）。
    休憩/睡眠・荷待ち・荷役作業・業務の交替・事故等は、まだ入力欄がないため常に空欄で出す。
    後からアプリ側に入力欄を追加したときは、ここ（と各シートのvalsの該当行）を直すだけで
    出力側は自動的に埋まる。 */
@@ -3369,10 +3737,10 @@ function buildVehicleSheet(wb, ym, days, fallback){
 function fetchLedgerData(uid, ym){
   var range=monthRange(ym);
   return Promise.all([
-    dref('users/'+uid+'/profile').once('value'),
-    dref('users/'+uid+'/tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-    dref('users/'+uid+'/gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
-    dref('users/'+uid+'/vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
+    uref(uid, 'profile').once('value'),
+    uref(uid, 'tenko').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    uref(uid, 'gyomu').orderByKey().startAt(range.start).endAt(range.end).once('value'),
+    uref(uid, 'vehicleCheck').orderByKey().startAt(range.start).endAt(range.end).once('value')
   ]).then(function(r){
     var profile=r[0].val()||{};
     var tenkoByDate={}, gyomuByDate={}, vcByDate={};
@@ -3404,8 +3772,9 @@ function exportLedgerExcel(){
   }).then(function(data){
     var profile=data.profile, days=data.days, fallback=data.fallback;
     /* 会社名・営業所名は出力対象ドライバー本人のユーザー情報設定から取る。未設定なら空欄のまま。 */
-    LEDGER_BLANK.companyName = profile.companyName||'';
-    LEDGER_BLANK.officeName = profile.officeName||'';
+    /* 会社ぜんたいの設定を優先。無ければ旧データ（本人のプロフィール）を見る */
+    LEDGER_BLANK.companyName = (currentCompanyMeta && currentCompanyMeta.name) || profile.companyName || '';
+    LEDGER_BLANK.officeName = (currentCompanyMeta && currentCompanyMeta.office) || profile.officeName || '';
     var wb=new ExcelJS.Workbook();
     wb.creator='軽貨物まるごとアプリ';
     buildTenkoSheet(wb, ym, filterRecordedDays(days,'tenko'), fallback);
@@ -3456,7 +3825,7 @@ function ledgerMetaHtml(title, profile, ym, info){
     ? '<div class="print-doc-meta">運転者名: <b>'+esc(info.driver||'')+'</b>　／　車両番号: <b>'+esc(info.vehicle||'')+'</b></div>'
     : '';
   return '<div class="print-doc-title">'+esc(title)+'</div>'
-    +'<div class="print-doc-meta">会社名: '+esc(profile.companyName||'')+'　／　営業所名: '+esc(profile.officeName||'')+'</div>'
+    +'<div class="print-doc-meta">会社名: '+esc((currentCompanyMeta&&currentCompanyMeta.name)||profile.companyName||'')+'　／　営業所名: '+esc((currentCompanyMeta&&currentCompanyMeta.office)||profile.officeName||'')+'</div>'
     +driverLine
     +'<div class="print-doc-meta">対象期間: '+esc(fmtYmdSlash(r.start))+' 〜 '+esc(fmtYmdSlash(r.end))+'</div>';
 }

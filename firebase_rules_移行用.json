@@ -44,6 +44,8 @@
     },
     "companies": {
       "$cid": {
+        ".read": "auth != null && ( !root.child('companies').child($cid).child('meta').exists() || root.child('companies').child($cid).child('meta').child('createdBy').val() === auth.uid )",
+        ".write": "auth != null && ( !root.child('companies').child($cid).child('meta').exists() || root.child('companies').child($cid).child('meta').child('createdBy').val() === auth.uid )",
         "meta": {
           ".read": "auth != null && (root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner')",
           ".write": "auth != null && ( (!data.exists() && newData.child('createdBy').val() === auth.uid) || (auth != null && (root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner')) )",
@@ -112,8 +114,8 @@
     },
     "userIndex": {
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".read": "auth != null && ( auth.uid === $uid || root.child('companies').child(data.val()).child('meta').child('createdBy').val() === auth.uid )",
+        ".write": "auth != null && ( auth.uid === $uid || root.child('companies').child(newData.val()).child('meta').child('createdBy').val() === auth.uid )"
       }
     },
     "inviteCodes": {
