@@ -78,7 +78,7 @@
                 ".write": "auth != null && (root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner')"
               },
               "role": {
-                ".write": "auth != null && (root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && $uid !== root.child('companies').child($cid).child('meta').child('createdBy').val()"
+                ".write": "auth != null && (root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && $uid !== root.child('companies').child($cid).child('meta').child('createdBy').val() && $uid !== auth.uid && (newData.val() === 'driver' || newData.val() === 'manager')"
               },
               "editUnlockUntil": {
                 ".write": "auth != null && (root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner')"
@@ -201,7 +201,7 @@
                   ".write": "auth != null && (root.child('staging').child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner')"
                 },
                 "role": {
-                  ".write": "auth != null && (root.child('staging').child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && $uid !== root.child('staging').child('companies').child($cid).child('meta').child('createdBy').val()"
+                  ".write": "auth != null && (root.child('staging').child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && $uid !== root.child('staging').child('companies').child($cid).child('meta').child('createdBy').val() && $uid !== auth.uid && (newData.val() === 'driver' || newData.val() === 'manager')"
                 },
                 "editUnlockUntil": {
                   ".write": "auth != null && (root.child('staging').child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('companies').child($cid).child('users').child(auth.uid).child('profile').child('role').val() === 'owner')"
