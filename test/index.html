@@ -169,6 +169,8 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
 .chip-row{display:flex;gap:6px;flex-wrap:wrap;}
 .chip{padding:8px 14px;border:2px solid var(--border);border-radius:20px;font-size:12px;font-weight:700;color:var(--sub);background:#FAFAFA;cursor:pointer;}
 .chip.active{border-color:var(--money);background:var(--money-light);color:var(--money);}
+/* 前日の到着メーターを引き継いだときの案内 */
+.odo-hint{font-size:11px;color:var(--money);font-weight:700;margin-top:6px;line-height:1.5;background:var(--money-light);border-radius:8px;padding:6px 9px;}
 /* 入力候補チップ（一度入力した値をタップで選べるようにする。点呼執行者・出発地など） */
 .chip-suggest{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;}
 .chip-s{padding:6px 11px;border-radius:20px;font-size:11.5px;font-weight:700;color:var(--money);background:var(--money-light);border:1px solid transparent;cursor:pointer;white-space:nowrap;}
@@ -952,7 +954,7 @@ body{font-family:-apple-system,'Hiragino Kaku Gothic ProN',sans-serif;background
         <div class="q"><div class="q-label">出発地</div><input type="text" class="field" id="gyomu-start-place" placeholder="例）おいらせ町営業所"></div>
         <div class="q"><div class="row2 row2-dt">
           <div><div class="q-label">出発日時</div><input type="datetime-local" class="field" id="gyomu-start-datetime"></div>
-          <div><div class="q-label">出発時の走行距離計</div><div class="unit-row"><input type="text" inputmode="numeric" class="field" id="gyomu-start-odo" oninput="calcGyomuDistance()"><span class="unit-label">km</span></div></div>
+          <div><div class="q-label">出発時の走行距離計</div><div class="unit-row"><input type="text" inputmode="numeric" class="field" id="gyomu-start-odo" oninput="calcGyomuDistance()"><span class="unit-label">km</span></div><div class="odo-hint" id="gyomu-odo-hint" style="display:none"></div></div>
         </div></div>
       </div>
       <div class="section">
@@ -2841,9 +2843,33 @@ function loadGyomu(){
       document.getElementById('gyomu-end-datetime').value='';
       document.getElementById('gyomu-end-odo').value='';
       document.getElementById('gyomu-route').value='';
+      /* まだ何も書いていない日は、前回の到着メーターを出発メーターに入れておく */
+      prefillStartOdo();
     }
     calcGyomuDistance();
   });
+}
+
+/* 直前に記録した日の「到着時の走行距離計」を、今日の「出発時」に引き継ぐ。
+   メーターは前回の到着＝今回の出発になるのが普通で、毎日手で写すのは手間なうえ
+   写し間違いが帳票（総走行距離）にそのまま出てしまうため。
+   入れた値は編集できる。引き継いだことは画面に明示する。 */
+function prefillStartOdo(){
+  var el=document.getElementById('gyomu-start-odo');
+  var hint=document.getElementById('gyomu-odo-hint');
+  hint.style.display='none';
+  if(!currentUser || el.value) return;
+  var today=driveDateKey();
+  uref(currentUser.uid, 'gyomu').orderByKey().endAt(today).limitToLast(2).once('value').then(function(snap){
+    var lastKey=null, lastVal=null;
+    snap.forEach(function(c){ if(c.key !== today){ lastKey=c.key; lastVal=c.val(); } });
+    if(!lastVal || !lastVal.endOdo) return;
+    if(el.value) return; /* 引いている間に本人が打ち始めていたら触らない */
+    el.value = lastVal.endOdo;
+    calcGyomuDistance();
+    hint.innerHTML = '📋 ' + esc(fmtYmdSlash(lastKey)) + ' の到着メーター <b>' + Number(lastVal.endOdo).toLocaleString() + ' km</b> を入れました（違うときは直してください）';
+    hint.style.display='block';
+  }).catch(function(err){ console.warn('前回のメーターを引き継げませんでした', err); });
 }
 function saveGyomu(){
   var data={
