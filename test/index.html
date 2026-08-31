@@ -1194,8 +1194,10 @@ var INVITE_CODE_CHARS = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 var INVITE_CODE_LEN = 8;
 function genInviteCode(){
   var a = new Uint32Array(INVITE_CODE_LEN);
-  if(window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(a);
-  else for(var j=0;j<INVITE_CODE_LEN;j++) a[j] = Math.floor(Math.random()*0xFFFFFFFF);
+  /* Math.random には落とさない。推測しにくさが招待コードの唯一の守りなので、
+     暗号用の乱数が使えない端末では会社を作らせない方が安全。 */
+  if(!(window.crypto && window.crypto.getRandomValues)) throw new Error('この端末では招待コードを発行できません（ブラウザを新しくしてください）');
+  window.crypto.getRandomValues(a);
   var out='';
   for(var i=0;i<INVITE_CODE_LEN;i++) out += INVITE_CODE_CHARS.charAt(a[i] % INVITE_CODE_CHARS.length);
   return out;
@@ -1282,6 +1284,10 @@ function createCompany(){
       coStep('done');
     });
   }).catch(function(err){
+    /* 途中で失敗したら会社を未確定に戻す。残したままだと、押し直したときに
+       別の会社がもう1つでき、最初の会社が迷子になる（参加side と挙動を揃える）。 */
+    currentCompanyId = null;
+    currentCompanyMeta = null;
     console.error('会社の作成に失敗', err);
     coError('co-create-err','会社を作れませんでした。'+dbErrMsg(err));
   }).finally(function(){ btn.disabled=false; });
@@ -1336,10 +1342,9 @@ function joinCompany(){
    そのため会社の情報はまとめて読まず、誰でも要る項目だけをここで読む。
    招待コードは役割が確定したあとに loadInviteCode() で読み足す。 */
 function loadCompanyMeta(){
-  var base = 'companies/'+currentCompanyId+'/meta/';
   var keys = ['name','office','contactEmail','createdBy'];
   return Promise.all(keys.map(function(k){
-    return dref(base+k).once('value').then(function(s){ return s.val(); }).catch(function(){ return null; });
+    return cref('meta/'+k).once('value').then(function(s){ return s.val(); }).catch(function(){ return null; });
   })).then(function(v){
     currentCompanyMeta = {name:v[0]||'', office:v[1]||'', contactEmail:v[2]||'', createdBy:v[3]||''};
   });
@@ -3197,18 +3202,21 @@ function promoteToManager(uid){
   }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
 }
 function approveUser(uid){
+  if(!isManager){ toast('⚠️ この操作はまとめ役だけができます'); return; }
   uref(uid, 'profile/status').set('approved').then(function(){
     toast('✅ 承認しました');
     loadTeam(); updatePendingBadge();
   }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
 }
 function rejectUser(uid){
+  if(!isManager){ toast('⚠️ この操作はまとめ役だけができます'); return; }
   uref(uid, 'profile/status').set('rejected').then(function(){
     toast('🚫 拒否しました');
     loadTeam(); updatePendingBadge();
   }).catch(function(err){ toast('⚠️ 失敗しました: '+err.message); });
 }
 function suspendUser(uid){
+  if(!isManager){ toast('⚠️ この操作はまとめ役だけができます'); return; }
   if(!confirm('このメンバーを利用停止にしますか？（再度使うには承認待ち一覧から承認し直します）')) return;
   uref(uid, 'profile/status').set('rejected').then(function(){
     toast('⛔ 利用停止にしました');
