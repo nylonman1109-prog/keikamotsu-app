@@ -113,7 +113,7 @@
     "userIndex": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid && !data.exists()"
       }
     },
     "inviteCodes": {
@@ -236,7 +236,7 @@
       "userIndex": {
         "$uid": {
           ".read": "auth != null && auth.uid === $uid",
-          ".write": "auth != null && auth.uid === $uid"
+          ".write": "auth != null && auth.uid === $uid && !data.exists()"
         }
       },
       "inviteCodes": {
