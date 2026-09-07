@@ -15,7 +15,7 @@
 // ★会社ごとに名前を分ける。GitHub Pages で同じドメインに複数社ぶんを置くと、
 //   キャッシュの置き場は会社をまたいで共有されるため、名前が同じだと
 //   片方の更新でもう片方のキャッシュが消される事故が起きる。
-var CACHE_PREFIX = 'keikamotsu-kitakami-shell-';
+var CACHE_PREFIX = 'keikamotsu-__COMPANY_ID__-shell-';
 var CACHE_VERSION = CACHE_PREFIX + 'v1';
 
 // ネットが遅いときに何秒待つか。これを過ぎたらキャッシュの画面を出して待たせない。

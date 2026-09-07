@@ -1,0 +1,93 @@
+// ══════════════════════════════════════════════════════════════════════
+// 軽貨物まるごとアプリ ／ 1社ぶんのセキュリティルール
+//
+// これは「1社に1つの Firebase」を前提にしたルール。
+// __COMPANY_ID__ と __MANAGER_EMAIL_CHECK__ の2か所は、
+// tools/新しい会社ぶんを作る.js が自動で書き換える（手で直してもよい）。
+// index.html の TENANT.companyId / TENANT.managerEmails と必ず同じ値にすること。
+//
+// 貼り方: Firebaseコンソール → Realtime Database → ルール → 全部消してこれを貼る → 公開
+//
+// ── 誰が何をできるか ──
+//   ドライバー   … 自分の記録だけ読み書きできる。承認されるまでは何も読み書きできない
+//   まとめ役     … 全員の記録を読める。承認・停止・まとめ役の任命／解任ができる。何人でも置ける。
+//                   なり方は2つ ①TENANT.managerEmails に載っているアドレスで登録する
+//                               ②既にいるまとめ役が画面から任命する
+//                   どちらでもない人は、必ず「ドライバー・承認待ち」から始まる
+// ══════════════════════════════════════════════════════════════════════
+{
+  "rules": {
+    "companies": {
+      "__COMPANY_ID__": {
+
+        // 会社の情報（会社名・営業所名＝帳票の見出しに使う）
+        "meta": {
+          ".read": "auth != null",
+          ".write": "auth != null && ( (!data.exists() && newData.child('createdBy').val() === auth.uid && (__MANAGER_EMAIL_CHECK__)) || ((root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('createdBy').val() === data.child('createdBy').val() && newData.child('createdAt').val() === data.child('createdAt').val()) )"
+        },
+
+        "users": {
+          // 一覧（全員を見る・帳票・経営レポート）を読めるのは まとめ役 だけ
+          ".read": "auth != null && (root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'owner')",
+
+          "$uid": {
+            "profile": {
+              ".read": "auth != null && auth.uid === $uid",
+
+              // 本人 … ①新規登録は必ず「ドライバー・承認待ち」で作る
+              //         ②例外: まとめ役メールに載っている人だけ「まとめ役・承認済み」で作れる（何人でも）
+              //         ③以後の書き換えでは 役割・承認状態・編集ロックを変えられない
+              // まとめ役 … 他人のプロフィールは書けるが、役割と承認状態は下の個別ルールを通す
+              ".write": "auth != null && ( (auth.uid === $uid && ( (!data.exists() && newData.child('role').val() === 'driver' && newData.child('status').val() === 'pending' && !newData.hasChild('editUnlockUntil')) || (!data.exists() && newData.child('role').val() === 'manager' && newData.child('status').val() === 'approved' && (__MANAGER_EMAIL_CHECK__)) || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val() && newData.child('editUnlockUntil').val() === data.child('editUnlockUntil').val()) )) || ((root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val()) )",
+
+              // 承認・停止。会社をつくった本人（1人目のまとめ役）は誰にも止められない
+              "status": {
+                ".write": "auth != null && (root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && $uid !== root.child('companies').child('__COMPANY_ID__').child('meta').child('createdBy').val()"
+              },
+
+              // 役割の変更。自分自身は変えられない（自分を owner に格上げする穴を塞ぐ）
+              "role": {
+                ".write": "auth != null && (root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && $uid !== root.child('companies').child('__COMPANY_ID__').child('meta').child('createdBy').val() && $uid !== auth.uid && (newData.val() === 'driver' || newData.val() === 'manager')"
+              },
+
+              // 過去日の修正を一時的に許可する期限（まとめ役が遠隔で開ける）
+              "editUnlockUntil": {
+                ".write": "auth != null && (root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('companies').child('__COMPANY_ID__').child('users').child(auth.uid).child('profile').child('role').val() === 'owner')"
+              }
+            },
+
+            // ここから下は「本人だけ」「承認済みのときだけ」読み書きできる
+            "deliveries": {
+              ".read": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'",
+              ".write": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'"
+            },
+            "income": {
+              ".read": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'",
+              ".write": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'"
+            },
+            "expenses": {
+              ".read": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'",
+              ".write": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'"
+            },
+            "tenko": {
+              ".read": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'",
+              ".write": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'"
+            },
+            "gyomu": {
+              ".read": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'",
+              ".write": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'"
+            },
+            "vehicleCheck": {
+              ".read": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'",
+              ".write": "auth != null && auth.uid === $uid && root.child('companies').child('__COMPANY_ID__').child('users').child($uid).child('profile').child('status').val() === 'approved'"
+            }
+          }
+        }
+      }
+    },
+
+    // 上で許可した場所以外は、全部おことわり
+    ".read": false,
+    ".write": false
+  }
+}

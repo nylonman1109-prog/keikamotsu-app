@@ -1090,12 +1090,12 @@ var TENANT = {
      ★空文字 "" にすると「会社の階層を作らない」形になり、データは users/<uid>/… に入る。
        すでに users/ 直下で動いているアプリ（北上さんの会社）を、データを引っ越さずに
        このテンプレートへ載せ替えるときはこちら。新しい会社は空にしないこと。 */
-  companyId: "",
+  companyId: "__COMPANY_ID__",
 
   /* 会社名・営業所名: 点呼簿・業務簿・車両点検の帳票の見出しに出る。
      元請けに提出する書類と同じ表記にすること。まとめ役は設定画面から後で直せる。 */
-  companyName: "デーリー東北おいらせ専売所",
-  officeName:  "軽貨物事業部",
+  companyName: "__COMPANY_NAME__",
+  officeName:  "__OFFICE_NAME__",
 
   /* まとめ役のメールアドレス（複数可）。
      ここに書いたアドレスで登録した人は、自動で「まとめ役（承認済み）」になる。
@@ -1103,18 +1103,18 @@ var TENANT = {
      ここに無いアドレスは全員「ドライバー・承認待ち」から始まり、
      まとめ役が承認して初めて使える（あとから「👑まとめ役にする」で増やすこともできる）。
      ※同じ値が Firebase のセキュリティルールにも入っている。片方だけ直しても効かない。 */
-  managerEmails: ["nylonman1109@gmail.com"],
+  managerEmails: [__MANAGER_EMAILS__],
 
   /* この会社が契約した Firebase の接続情報。
      Firebaseコンソール → ⚙️プロジェクトの設定 → マイアプリ → 「SDK の設定と構成」からコピーする。 */
   firebase: {
-    apiKey:            "AIzaSyAKe9kGHDLQCUKMIUFNF316aYnBbia72Ok",
-    authDomain:        "tennko-83298.firebaseapp.com",
-    databaseURL:       "https://tennko-83298-default-rtdb.firebaseio.com",
-    projectId:         "tennko-83298",
-    storageBucket:     "tennko-83298.firebasestorage.app",
-    messagingSenderId: "502190926224",
-    appId:             "1:502190926224:web:d2860972098a6d385e6b15"
+    apiKey:            "__FB_API_KEY__",
+    authDomain:        "__FB_AUTH_DOMAIN__",
+    databaseURL:       "__FB_DATABASE_URL__",
+    projectId:         "__FB_PROJECT_ID__",
+    storageBucket:     "__FB_STORAGE_BUCKET__",
+    messagingSenderId: "__FB_SENDER_ID__",
+    appId:             "__FB_APP_ID__"
   },
 
   /* 承認依頼メールの自動送信（EmailJS）。使わないなら3つとも空のままでよい。

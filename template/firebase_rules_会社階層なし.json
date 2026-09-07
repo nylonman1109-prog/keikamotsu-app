@@ -7,7 +7,7 @@
 //
 // 新しく作る会社には使わない。新規は会社IDを付けた firebase_rules.json を使うこと。
 //
-// auth.token.email === 'nylonman1109@gmail.com' は tools/新しい会社ぶんを作る.js が自動で書き換える。
+// __MANAGER_EMAIL_CHECK__ は tools/新しい会社ぶんを作る.js が自動で書き換える。
 // index.html の TENANT.managerEmails と必ず同じ顔ぶれにすること。
 //
 // 貼り方: Firebaseコンソール → Realtime Database → ルール → 全部消して貼る → 公開
@@ -24,14 +24,14 @@
   "rules": {
     "companyMeta": {
       ".read": "auth != null",
-      ".write": "auth != null && ( (!data.exists() && newData.child('createdBy').val() === auth.uid && (auth.token.email === 'nylonman1109@gmail.com')) || ((root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('createdBy').val() === data.child('createdBy').val() && newData.child('createdAt').val() === data.child('createdAt').val()) )"
+      ".write": "auth != null && ( (!data.exists() && newData.child('createdBy').val() === auth.uid && (__MANAGER_EMAIL_CHECK__)) || ((root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('createdBy').val() === data.child('createdBy').val() && newData.child('createdAt').val() === data.child('createdAt').val()) )"
     },
     "users": {
       ".read": "auth != null && (root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('users').child(auth.uid).child('profile').child('role').val() === 'owner')",
       "$uid": {
         "profile": {
           ".read": "auth != null && auth.uid === $uid",
-          ".write": "auth != null && ( (auth.uid === $uid && ( (!data.exists() && newData.child('role').val() === 'driver' && newData.child('status').val() === 'pending' && !newData.hasChild('editUnlockUntil')) || (!data.exists() && newData.child('role').val() === 'manager' && newData.child('status').val() === 'approved' && (auth.token.email === 'nylonman1109@gmail.com')) || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val() && newData.child('editUnlockUntil').val() === data.child('editUnlockUntil').val()) )) || ((root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val()) )",
+          ".write": "auth != null && ( (auth.uid === $uid && ( (!data.exists() && newData.child('role').val() === 'driver' && newData.child('status').val() === 'pending' && !newData.hasChild('editUnlockUntil')) || (!data.exists() && newData.child('role').val() === 'manager' && newData.child('status').val() === 'approved' && (__MANAGER_EMAIL_CHECK__)) || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val() && newData.child('editUnlockUntil').val() === data.child('editUnlockUntil').val()) )) || ((root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val()) )",
           "status": {
             ".write": "auth != null && (root.child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && $uid !== root.child('companyMeta').child('createdBy').val()"
           },
@@ -71,14 +71,14 @@
     "staging": {
       "companyMeta": {
         ".read": "auth != null",
-        ".write": "auth != null && ( (!data.exists() && newData.child('createdBy').val() === auth.uid && (auth.token.email === 'nylonman1109@gmail.com')) || ((root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('createdBy').val() === data.child('createdBy').val() && newData.child('createdAt').val() === data.child('createdAt').val()) )"
+        ".write": "auth != null && ( (!data.exists() && newData.child('createdBy').val() === auth.uid && (__MANAGER_EMAIL_CHECK__)) || ((root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('createdBy').val() === data.child('createdBy').val() && newData.child('createdAt').val() === data.child('createdAt').val()) )"
       },
       "users": {
         ".read": "auth != null && (root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'owner')",
         "$uid": {
           "profile": {
             ".read": "auth != null && auth.uid === $uid",
-            ".write": "auth != null && ( (auth.uid === $uid && ( (!data.exists() && newData.child('role').val() === 'driver' && newData.child('status').val() === 'pending' && !newData.hasChild('editUnlockUntil')) || (!data.exists() && newData.child('role').val() === 'manager' && newData.child('status').val() === 'approved' && (auth.token.email === 'nylonman1109@gmail.com')) || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val() && newData.child('editUnlockUntil').val() === data.child('editUnlockUntil').val()) )) || ((root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val()) )",
+            ".write": "auth != null && ( (auth.uid === $uid && ( (!data.exists() && newData.child('role').val() === 'driver' && newData.child('status').val() === 'pending' && !newData.hasChild('editUnlockUntil')) || (!data.exists() && newData.child('role').val() === 'manager' && newData.child('status').val() === 'approved' && (__MANAGER_EMAIL_CHECK__)) || (data.exists() && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val() && newData.child('editUnlockUntil').val() === data.child('editUnlockUntil').val()) )) || ((root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && newData.child('role').val() === data.child('role').val() && newData.child('status').val() === data.child('status').val()) )",
             "status": {
               ".write": "auth != null && (root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'manager' || root.child('staging').child('users').child(auth.uid).child('profile').child('role').val() === 'owner') && $uid !== root.child('staging').child('companyMeta').child('createdBy').val()"
             },

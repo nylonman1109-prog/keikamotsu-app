@@ -1,7 +1,7 @@
 {
   "name": "軽貨物まるごとアプリ",
   "short_name": "軽貨物まるごと",
-  "description": "点呼・業務簿・お金まわりをひとつにまとめた軽貨物ドライバー向けアプリ（デーリー東北おいらせ専売所）",
+  "description": "点呼・業務簿・お金まわりをひとつにまとめた軽貨物ドライバー向けアプリ（__COMPANY_NAME__）",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
