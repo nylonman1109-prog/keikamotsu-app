@@ -2735,25 +2735,42 @@ function loadGyomu(){
 /* 直前に記録した日の「到着時の走行距離計」を、今日の「出発時」に引き継ぐ。
    メーターは前回の到着＝今回の出発になるのが普通で、毎日手で写すのは手間なうえ
    写し間違いが帳票（総走行距離）にそのまま出てしまうため。
-   入れた値は編集できる。引き継いだことは画面に明示する。 */
+   入れた値は編集できる。引き継いだことは画面に明示する。
+
+   ★直前の1日だけを見る作りだと、前日に到着メーターを入れ忘れていた時点で
+     それ以降ずっと引き継がれなくなる（2026-09-08に実際そうなっていた）。
+     そのため「到着メーターが入っている直近の日」まで さかのぼって探す。 */
+var ODO_LOOKBACK_DAYS = 60; /* さかのぼる上限。1件は小さいので60件読んでも軽い */
 function prefillStartOdo(){
   var el=document.getElementById('gyomu-start-odo');
   var hint=document.getElementById('gyomu-odo-hint');
   hint.style.display='none';
   if(!currentUser || el.value) return;
   var today=driveDateKey();
-  uref(currentUser.uid, 'gyomu').orderByKey().endAt(today).limitToLast(2).once('value').then(function(snap){
-    var lastKey=null, lastVal=null;
-    snap.forEach(function(c){ if(c.key !== today){ lastKey=c.key; lastVal=c.val(); } });
-    if(!lastVal || !lastVal.endOdo) return;
+  uref(currentUser.uid, 'gyomu').orderByKey().endAt(today).limitToLast(ODO_LOOKBACK_DAYS).once('value').then(function(snap){
+    /* snap は日付の古い順に並ぶ。今日を除いて集めてから、新しい順に見ていく */
+    var rows=[];
+    snap.forEach(function(c){ if(c.key !== today) rows.push({key:c.key, val:c.val()||{}}); });
+    var found=null;
+    for(var i=rows.length-1; i>=0; i--){
+      var odo = Number(rows[i].val.endOdo);
+      if(odo > 0){ found={key:rows[i].key, odo:odo}; break; }
+    }
+    if(!found) return;
     if(el.value) return; /* 引いている間に本人が打ち始めていたら触らない */
-    el.value = lastVal.endOdo;
+    el.value = found.odo;
     calcGyomuDistance();
-    hint.innerHTML = '📋 ' + esc(fmtYmdSlash(lastKey)) + ' の到着メーター <b>' + Number(lastVal.endOdo).toLocaleString() + ' km</b> を入れました（違うときは直してください）';
+    hint.innerHTML = '📋 ' + esc(fmtYmdSlash(found.key)) + ' の到着メーター <b>' + found.odo.toLocaleString() + ' km</b> を入れました（違うときは直してください）';
     hint.style.display='block';
   }).catch(function(err){ console.warn('前回のメーターを引き継げませんでした', err); });
 }
 function saveGyomu(){
+  /* 到着メーターが空のまま保存すると、帳票の走行距離が 0km になる。
+     業務の途中でいったん保存する使い方もあるので、止めはせず確認だけする。
+     出発メーターも空＝まだ何も書いていない状態なら、いちいち聞かない。 */
+  if(num(val('gyomu-start-odo')) > 0 && num(val('gyomu-end-odo')) <= 0){
+    if(!confirm('到着時の走行距離計が空です。\n\nこのまま保存すると、帳票の走行距離が 0km になります。\n業務が終わってから、同じ日を開いて入れ直せます。\n\nこのまま保存しますか？')) return;
+  }
   var data={
     driver:val('gyomu-driver'), vehicle:val('gyomu-vehicle'),
     startPlace:val('gyomu-start-place'), startDatetime:val('gyomu-start-datetime'), startOdo:num(val('gyomu-start-odo')),

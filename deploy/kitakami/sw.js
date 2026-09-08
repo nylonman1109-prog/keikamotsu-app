@@ -16,7 +16,7 @@
 //   キャッシュの置き場は会社をまたいで共有されるため、名前が同じだと
 //   片方の更新でもう片方のキャッシュが消される事故が起きる。
 var CACHE_PREFIX = 'keikamotsu-kitakami-shell-';
-var CACHE_VERSION = CACHE_PREFIX + 'v1';
+var CACHE_VERSION = CACHE_PREFIX + 'v2';
 
 // ネットが遅いときに何秒待つか。これを過ぎたらキャッシュの画面を出して待たせない。
 var HTML_NETWORK_TIMEOUT_MS = 3000;
